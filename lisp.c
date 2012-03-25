@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <stdarg.h>
 
 #include "memory-management.c"
 
@@ -11,75 +11,126 @@
 // Reader
 //
 
-atom_t* read_list(FILE *stream);
-atom_t* read_num(FILE *stream);
-atom_t* read_str(FILE *stream);
-atom_t* read_sym(FILE *stream);
+typedef struct {
+	FILE *stream;
+	uint64_t line;
+	bool eof;
+} reader_t;
 
-atom_t* read_atom(FILE *stream){
+int read_whitespaces(reader_t *reader);
+
+atom_t* read_list(reader_t *reader);
+atom_t* read_num(reader_t *reader);
+atom_t* read_str(reader_t *reader);
+atom_t* read_sym(reader_t *reader);
+
+/**
+ * Reads all whitespaces from the reader stream. Increments the reader
+ * line number for each encountered line break. The first non whitespace
+ * character is returned (as `int` to preserve EOF).
+ */
+int read_whitespaces(reader_t *reader){
 	char c;
-	fscanf(stream, " %c", &c);
+	do {
+		c = fgetc(reader->stream);
+		if (c == '\n')
+			reader->line++;
+		else if (c == EOF)
+			reader->eof = true;
+	} while ( isspace(c) );
+	return c;
+}
+
+int read_scan(reader_t *reader, const char *format, ...){
+	va_list args;
+	va_start(args, format);
+	int ret = vfscanf(reader->stream, format, args);
+	va_end(args);
 	
-	if ( c == '(' ) {
-		return read_list(stream);
+	if (ret == EOF)
+		reader->eof = true;
+	
+	return ret;
+}
+
+atom_t* read_atom(reader_t *reader){
+	int c = read_whitespaces(reader);
+	
+	if ( c == EOF )
+		return get_nil_atom();
+	else if ( c == '(' ) {
+		return read_list(reader);
 	} else if ( c == '"' ) {
-		return read_str(stream);
+		return read_str(reader);
 	} else if ( isdigit(c) ) {
-		ungetc(c, stream);
-		return read_num(stream);
+		ungetc(c, reader->stream);
+		return read_num(reader);
 	} else {
-		ungetc(c, stream);
-		return read_sym(stream);
+		ungetc(c, reader->stream);
+		return read_sym(reader);
 	}
 }
 
-
-atom_t* read_list(FILE *stream){
-	char c;
+atom_t* read_list(reader_t *reader){
+	int c;
 	atom_t* list_start_atom = alloc_pair();
 	atom_t* current_atom = list_start_atom;
 	
 	while (true) {
-		current_atom->pair.first = read_atom(stream);
+		current_atom->pair.first = read_atom(reader);
 		
-		fscanf(stream, " %c", &c);
-		if ( c == ')' ) {
+		c = read_whitespaces(reader);
+		if ( c == EOF ) {
+			break;
+		} else if ( c == ')' ) {
 			current_atom->pair.rest = get_nil_atom();
 			break;
 		} else if ( c == '.' ) {
-			current_atom->pair.rest = read_atom(stream);
+			current_atom->pair.rest = read_atom(reader);
 			// Consume trailing whitespaces and the closing list parenthesis
-			fscanf(stream, " )");
-			break;
+			c = read_whitespaces(reader);
+			if ( c == ')' )
+				break;
+			else
+				return get_nil_atom();
 		} else {
-			ungetc(c, stream);
+			ungetc(c, reader->stream);
 		}
 		
 		current_atom->pair.rest = alloc_pair();
 		current_atom = current_atom->pair.rest;
 	}
 	
-	return list_start_atom;
+	if ( reader->eof )
+		return get_nil_atom();
+	else
+		return list_start_atom;
 }
 
-atom_t* read_num(FILE *stream){
+atom_t* read_num(reader_t *reader){
 	atom_t* new_atom = alloc_num();
-	fscanf(stdin, "%ld", &new_atom->num);
-	return new_atom;
+	if ( read_scan(reader, "%ld", &new_atom->num) == 1 )
+		return new_atom;
+	else
+		return get_nil_atom();
 }
 
-atom_t* read_str(FILE *stream){
+atom_t* read_str(reader_t *reader){
 	atom_t *new_atom = alloc_str();
 	// Consumes the string until the double quote and the trailing double quote
-	fscanf(stream, "%m[^\"]\"", &new_atom->str);
-	return new_atom;
+	if ( read_scan(reader, "%m[^\"]\"", &new_atom->str) == 1 )
+		return new_atom;
+	else
+		return get_nil_atom();
 }
 
-atom_t* read_sym(FILE *stream){
+atom_t* read_sym(reader_t *reader){
 	atom_t *new_atom = alloc_sym();
 	// Consume the symbol
-	scanf("%m[0-9a-zA-Z_]", &new_atom->sym);
-	return new_atom;
+	if ( read_scan(reader, "%m[^ \t\n()]", &new_atom->sym) == 1 )
+		return new_atom;
+	else
+		return get_nil_atom();
 }
 
 
@@ -132,13 +183,16 @@ void print_list(FILE *stream, atom_t *list_atom){
 //
 
 void main(){
+	reader_t reader = {stdin, 1, false};
 	allocator_init();
 	
-	while (true) {
-		printf("> ");
+	while ( !reader.eof ) {
+		printf("%ld > ", reader.line);
 		fflush(stdout);
-		atom_t *atom = read_atom(stdin);
+		atom_t *atom = read_atom(&reader);
 		print_atom(stdout, atom);
 		printf("\n");
 	}
+	
+	printf("Encountered EOF. Have a good day.\n");
 }
