@@ -14,8 +14,8 @@ atom_t *eval_atom(atom_t *atom, env_t *env){
 		warn("Undefined binding for symbol %s in env %p", atom->sym, env);
 		return get_nil_atom();
 	} else if (atom->type == T_PAIR) {
-		atom_t *function_slot = atom->pair.first;
-		atom_t *args = atom->pair.rest;
+		atom_t *function_slot = atom->first;
+		atom_t *args = atom->rest;
 		atom_t *evaled_function_slot = eval_atom(function_slot, env);
 		
 		if (evaled_function_slot->type == T_BUILDIN) {

@@ -5,6 +5,7 @@
 
 #include "memory.h"
 #include "reader.h"
+#include "logger.h"
 
 
 int read_whitespaces(reader_t *reader);
@@ -58,16 +59,16 @@ atom_t* read_list(reader_t *reader){
 	atom_t* current_atom = list_start_atom;
 	
 	while (true) {
-		current_atom->pair.first = read_atom(reader);
+		current_atom->first = read_atom(reader);
 		
 		c = read_whitespaces(reader);
 		if ( c == EOF ) {
 			break;
 		} else if ( c == ')' ) {
-			current_atom->pair.rest = get_nil_atom();
+			current_atom->rest = get_nil_atom();
 			break;
 		} else if ( c == '.' ) {
-			current_atom->pair.rest = read_atom(reader);
+			current_atom->rest = read_atom(reader);
 			// Consume trailing whitespaces and the closing list parenthesis
 			c = read_whitespaces(reader);
 			if ( c == ')' )
@@ -78,8 +79,8 @@ atom_t* read_list(reader_t *reader){
 			ungetc(c, reader->stream);
 		}
 		
-		current_atom->pair.rest = alloc_pair();
-		current_atom = current_atom->pair.rest;
+		current_atom->rest = alloc_pair();
+		current_atom = current_atom->rest;
 	}
 	
 	if ( reader->eof )

@@ -131,23 +131,23 @@ int main(){
 	
 	atom = stage_and_read_code("(1)");
 	test(atom->type == T_PAIR
-		&& atom->pair.first->type == T_NUM && atom->pair.first->num == 1
-		&& atom->pair.rest->type == T_NIL
+		&& atom->first->type == T_NUM && atom->first->num == 1
+		&& atom->rest->type == T_NIL
 	, ".");
 	
 	atom = stage_and_read_code("(1 . 2)");
 	test(atom->type == T_PAIR
-		&& atom->pair.first->type == T_NUM && atom->pair.first->num == 1
-		&& atom->pair.rest->type == T_NUM && atom->pair.rest->num == 2
+		&& atom->first->type == T_NUM && atom->first->num == 1
+		&& atom->rest->type == T_NUM && atom->rest->num == 2
 	, ".");
 	
 	atom = stage_and_read_code("(1 2 3)");
-	test(atom->type == T_PAIR && atom->pair.first->type == T_NUM && atom->pair.first->num == 1, ".");
-	atom = atom->pair.rest;
-	test(atom->type == T_PAIR && atom->pair.first->type == T_NUM && atom->pair.first->num == 2, ".");
-	atom = atom->pair.rest;
-	test(atom->type == T_PAIR && atom->pair.first->type == T_NUM && atom->pair.first->num == 3, ".");
-	atom = atom->pair.rest;
+	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 1, ".");
+	atom = atom->rest;
+	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 2, ".");
+	atom = atom->rest;
+	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 3, ".");
+	atom = atom->rest;
 	test(atom->type == T_NIL, ".");
 	
 	

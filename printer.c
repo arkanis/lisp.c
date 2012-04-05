@@ -41,8 +41,8 @@ void print_list(FILE *stream, atom_t *list_atom){
 	fprintf(stream, "(");
 	
 	while (list_atom->type == T_PAIR) {
-		print_atom(stream, list_atom->pair.first);
-		list_atom = list_atom->pair.rest;
+		print_atom(stream, list_atom->first);
+		list_atom = list_atom->rest;
 		if (list_atom->type == T_PAIR)
 			fprintf(stream, " ");
 	}
