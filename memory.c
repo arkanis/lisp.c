@@ -53,6 +53,10 @@ atom_t* alloc_buildin(buildin_func_t func){
 	return atom;
 }
 
+atom_t* alloc_lambda(){
+	return alloc_atom(T_LAMBDA);
+}
+
 
 //
 // Environment stuff
@@ -62,6 +66,7 @@ env_t* alloc_env(env_t *parent){
 	env_t *env = malloc(sizeof(env_t));
 	env->length = 0;
 	env->parent = parent;
+	env->bindings = NULL;
 	return env;
 }
 

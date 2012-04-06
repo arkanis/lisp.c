@@ -2,7 +2,6 @@ GCC_ARGS = -Wall -std=gnu99 -g
 OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o
 run: tests repl
 	./tests
-	./repl
 
 tests: tests.c $(OBJ_FILES)
 	gcc $(GCC_ARGS) tests.c $(OBJ_FILES) -o tests

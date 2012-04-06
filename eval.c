@@ -20,6 +20,18 @@ atom_t *eval_atom(atom_t *atom, env_t *env){
 		
 		if (evaled_function_slot->type == T_BUILDIN) {
 			return evaled_function_slot->func(args, env);
+		} else if (evaled_function_slot->type == T_LAMBDA) {
+			env_t *lambda_env = alloc_env(evaled_function_slot->env);
+			
+			// Eval and bind lambda args
+			atom_t *arg_name_pair = evaled_function_slot->args, *arg_value_pair = args;
+			while(arg_name_pair->type == T_PAIR && arg_value_pair->type == T_PAIR){
+				env_set(lambda_env, arg_name_pair->first->sym, eval_atom(arg_value_pair->first, env));
+				arg_name_pair = arg_name_pair->rest;
+				arg_value_pair = arg_value_pair->rest;
+			}
+			
+			return eval_atom(evaled_function_slot->body, lambda_env);
 		} else {
 			warn("Got unexpected atom in function slot, type: %d", evaled_function_slot->type);
 			return get_nil_atom();

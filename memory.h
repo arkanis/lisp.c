@@ -19,10 +19,15 @@ struct atom_s {
 		char *sym;
 		char *str;
 		struct {
-			struct atom_s *first, *rest;
+			atom_t *first, *rest;
 		};
 		struct {
 			buildin_func_t func;
+		};
+		struct {
+			atom_t *body;
+			atom_t *args;
+			env_t *env;
 		};
 	};
 };
@@ -34,7 +39,7 @@ typedef struct {
 
 struct env_s {
 	unsigned int length;
-	struct env_s *parent;
+	env_t *parent;
 	env_binding_t *bindings;
 };
 
@@ -62,6 +67,7 @@ struct env_s {
 
 // More low level atoms
 #define T_BUILDIN 20
+#define T_LAMBDA 21
 
 
 //
@@ -82,6 +88,7 @@ atom_t* alloc_sym();
 atom_t* alloc_str();
 atom_t* alloc_pair();
 atom_t* alloc_buildin(buildin_func_t func);
+atom_t* alloc_lambda();
 
 // Environement functions
 env_t* alloc_env(env_t *parent);

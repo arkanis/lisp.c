@@ -31,6 +31,13 @@ void print_atom(FILE *stream, atom_t *atom){
 		case T_BUILDIN:
 			fprintf(stream, "buildin at %p", atom->func);
 			break;
+		case T_LAMBDA:
+			fprintf(stream, "(lambda ");
+			print_atom(stream, atom->args);
+			fprintf(stream, " ");
+			print_atom(stream, atom->body);
+			fprintf(stream, ")");
+			break;
 		default:
 			fprintf(stream, "unknown atom");
 			break;
