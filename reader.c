@@ -21,7 +21,7 @@ atom_t* read_atom(reader_t *reader){
 	int c = read_whitespaces(reader);
 	
 	if ( c == EOF )
-		return get_nil_atom();
+		return nil_atom();
 	else if ( c == '(' ) {
 		return read_list(reader);
 	} else if ( c == '"' ) {
@@ -55,7 +55,7 @@ int read_whitespaces(reader_t *reader){
 
 atom_t* read_list(reader_t *reader){
 	int c;
-	atom_t* list_start_atom = alloc_pair();
+	atom_t* list_start_atom = pair_atom_alloc( nil_atom(), nil_atom() );
 	atom_t* current_atom = list_start_atom;
 	
 	while (true) {
@@ -65,7 +65,7 @@ atom_t* read_list(reader_t *reader){
 		if ( c == EOF ) {
 			break;
 		} else if ( c == ')' ) {
-			current_atom->rest = get_nil_atom();
+			current_atom->rest = nil_atom();
 			break;
 		} else if ( c == '.' ) {
 			current_atom->rest = read_atom(reader);
@@ -74,53 +74,53 @@ atom_t* read_list(reader_t *reader){
 			if ( c == ')' )
 				break;
 			else
-				return get_nil_atom();
+				return nil_atom();
 		} else {
 			ungetc(c, reader->stream);
 		}
 		
-		current_atom->rest = alloc_pair();
+		current_atom->rest = pair_atom_alloc( nil_atom(), nil_atom() );
 		current_atom = current_atom->rest;
 	}
 	
 	if ( reader->eof )
-		return get_nil_atom();
+		return nil_atom();
 	else
 		return list_start_atom;
 }
 
 atom_t* read_num(reader_t *reader){
-	atom_t* new_atom = alloc_num();
-	if ( read_scan(reader, "%ld", &new_atom->num) == 1 )
-		return new_atom;
+	int64_t value = 0;
+	if ( read_scan(reader, "%ld", &value) == 1 )
+		return num_atom_alloc(value);
 	else
-		return get_nil_atom();
+		return nil_atom();
 }
 
 atom_t* read_str(reader_t *reader){
-	atom_t *new_atom = alloc_str();
+	char *str = NULL;
 	// Consumes the string until the double quote and the trailing double quote
-	if ( read_scan(reader, "%m[^\"]\"", &new_atom->str) == 1 )
-		return new_atom;
+	if ( read_scan(reader, "%m[^\"]\"", &str) == 1 )
+		return str_atom_alloc(str);
 	else
-		return get_nil_atom();
+		return nil_atom();
 }
 
 atom_t* read_sym(reader_t *reader){
-	atom_t *new_atom = alloc_sym();
+	char *sym = NULL;
 	// Consume the symbol
-	if ( read_scan(reader, "%m[^ \t\n()]", &new_atom->sym) == 1 ) {
-		if ( strcmp(new_atom->sym, "nil") == 0 )
-			return get_nil_atom();
-		else if ( strcmp(new_atom->sym, "true") == 0 )
-			return get_true_atom();
-		else if ( strcmp(new_atom->sym, "false") == 0 )
-			return get_false_atom();
+	if ( read_scan(reader, "%m[^ \t\n()]", &sym) == 1 ) {
+		if ( strcmp(sym, "nil") == 0 )
+			return nil_atom();
+		else if ( strcmp(sym, "true") == 0 )
+			return true_atom();
+		else if ( strcmp(sym, "false") == 0 )
+			return false_atom();
 		
-		return new_atom;
+		return sym_atom_alloc(sym);
 	}
 
-	return get_nil_atom();
+	return nil_atom();
 }
 
 int read_scan(reader_t *reader, const char *format, ...){

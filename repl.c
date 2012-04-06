@@ -14,7 +14,7 @@
 int main(){
 	reader_t reader = {stdin, 1, false};
 	memory_init();
-	env_t *env = alloc_env(NULL);
+	env_t *env = env_alloc(NULL);
 	
 	register_buildins_in(env);
 	

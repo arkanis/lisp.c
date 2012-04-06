@@ -64,10 +64,8 @@ struct env_s {
 #define T_COMPLEX_ATOM 10
 #define T_SYM 10
 #define T_PAIR 11
-
-// More low level atoms
-#define T_BUILDIN 20
-#define T_LAMBDA 21
+#define T_BUILDIN 12
+#define T_LAMBDA 13
 
 
 //
@@ -76,22 +74,21 @@ struct env_s {
 
 void memory_init();
 
-// Getters for the singelton atoms
-atom_t* get_nil_atom();
-atom_t* get_true_atom();
-atom_t* get_false_atom();
+// Functions that return singleton atoms
+atom_t* nil_atom();
+atom_t* true_atom();
+atom_t* false_atom();
 
-// Normal atoms
-atom_t* alloc_atom(uint8_t type);
-atom_t* alloc_num();
-atom_t* alloc_sym();
-atom_t* alloc_str();
-atom_t* alloc_pair();
-atom_t* alloc_buildin(buildin_func_t func);
-atom_t* alloc_lambda();
+// Atom allocator values that already get the content
+atom_t* num_atom_alloc(int64_t value);
+atom_t* sym_atom_alloc(char *sym);
+atom_t* str_atom_alloc(char *str);
+atom_t* pair_atom_alloc(atom_t *first, atom_t *rest);
+atom_t* buildin_atom_alloc(buildin_func_t func);
+atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env);
 
 // Environement functions
-env_t* alloc_env(env_t *parent);
+env_t* env_alloc(env_t *parent);
 atom_t* env_get(env_t *env, char *key);
 void env_set(env_t *env, char *key, atom_t *value);
 

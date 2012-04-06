@@ -44,13 +44,13 @@ void test_reader(){
 	test(atom->type == T_STR && strcmp(atom->str, "str") == 0, "got type: %d, str: %s", atom->type, atom->str);
 	
 	atom = read_code("nil");
-	test(atom->type == T_NIL && atom == get_nil_atom(), "got type: %d, atom: %p, nil atom: %p", atom->type, atom, get_nil_atom());
+	test(atom->type == T_NIL && atom == nil_atom(), "got type: %d, atom: %p, nil atom: %p", atom->type, atom, nil_atom());
 	
 	atom = read_code("true");
-	test(atom->type == T_TRUE && atom == get_true_atom(), "got type: %d, atom: %p, true atom: %p", atom->type, atom, get_true_atom());
+	test(atom->type == T_TRUE && atom == true_atom(), "got type: %d, atom: %p, true atom: %p", atom->type, atom, true_atom());
 	
 	atom = read_code("false");
-	test(atom->type == T_FALSE && atom == get_false_atom(), "got type: %d, atom: %p, false atom: %p", atom->type, atom, get_false_atom());
+	test(atom->type == T_FALSE && atom == false_atom(), "got type: %d, atom: %p, false atom: %p", atom->type, atom, false_atom());
 	
 	atom = read_code("(1)");
 	test(atom->type == T_PAIR
@@ -89,25 +89,25 @@ void test_printer(){
 }
 
 void test_env(){
-	env_t *env = alloc_env(NULL);
+	env_t *env = env_alloc(NULL);
 	
 	test( env_get(env, "does_not_exists") == NULL, "expected a NULL pointer for an undefined binding");
 	
-	env_set(env, "foo", get_true_atom());
-	test( env_get(env, "foo") == get_true_atom(), "set and lookup in env failed");
+	env_set(env, "foo", true_atom());
+	test( env_get(env, "foo") == true_atom(), "set and lookup in env failed");
 	
-	env_set(env, "bar", get_false_atom());
-	env_set(env, "nil_atom", get_nil_atom());
+	env_set(env, "bar", false_atom());
+	env_set(env, "nil_atom", nil_atom());
 	
-	test( env_get(env, "bar") == get_false_atom(), "second set and lookup in env failed");
-	test( env_get(env, "nil_atom") == get_nil_atom(), "third set and lookup in env failed");
+	test( env_get(env, "bar") == false_atom(), "second set and lookup in env failed");
+	test( env_get(env, "nil_atom") == nil_atom(), "third set and lookup in env failed");
 	
 	// Test nested envs
-	env_t *nested_env = alloc_env(env);
-	test( env_get(nested_env, "foo") == get_true_atom(), "nested env lookup failed");
+	env_t *nested_env = env_alloc(env);
+	test( env_get(nested_env, "foo") == true_atom(), "nested env lookup failed");
 	
-	env_set(nested_env, "nested", get_true_atom());
-	test( env_get(nested_env, "nested") == get_true_atom(), "set and lookup in nested env failed");
+	env_set(nested_env, "nested", true_atom());
+	test( env_get(nested_env, "nested") == true_atom(), "set and lookup in nested env failed");
 	test( env_get(env, "nested") == NULL, "nested set leaked into the parent env");
 }
 
@@ -118,22 +118,20 @@ atom_t* test_eval_sample_buildin(atom_t *args, env_t *env){
 }
 
 void test_eval(){
-	env_t *env = alloc_env(NULL);
+	env_t *env = env_alloc(NULL);
 	atom_t *atom = NULL;
 	
-	test( eval_atom(get_nil_atom(), env) == get_nil_atom() , "the nil atom should eval to itself");
-	test( eval_atom(get_true_atom(), env) == get_true_atom() , "the true atom should eval to itself");
-	test( eval_atom(get_false_atom(), env) == get_false_atom() , "the false atom should eval to itself");
+	test( eval_atom(nil_atom(), env) == nil_atom() , "the nil atom should eval to itself");
+	test( eval_atom(true_atom(), env) == true_atom() , "the true atom should eval to itself");
+	test( eval_atom(false_atom(), env) == false_atom() , "the false atom should eval to itself");
 	
-	atom = alloc_num();
-	atom->num = 123;
+	atom = num_atom_alloc(123);
 	test( eval_atom(atom, env) == atom , "number atoms should eval to themselfs");
 	
-	atom = alloc_str();
-	atom->str = "hello world";
+	atom = str_atom_alloc("hello world");
 	test( eval_atom(atom, env) == atom , "string atoms should eval to themselfs");
 	
-	env_set(env, "test", alloc_buildin(test_eval_sample_buildin));
+	env_set(env, "test", buildin_atom_alloc(test_eval_sample_buildin));
 	test_eval_sample_buildin_visited = false;
 	atom = read_code("(test 1)");
 	atom = eval_atom(atom, env);

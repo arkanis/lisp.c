@@ -39,7 +39,7 @@ void print_atom(FILE *stream, atom_t *atom){
 			fprintf(stream, ")");
 			break;
 		default:
-			fprintf(stream, "unknown atom");
+			fprintf(stream, "unknown atom, type %d", atom->type);
 			break;
 	}
 }

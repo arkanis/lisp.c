@@ -7,54 +7,73 @@
 // Global singleton atoms
 atom_t *allocator_nil_atom, *allocator_true_atom, *allocator_false_atom;
 
-void memory_init(){
-	allocator_nil_atom = alloc_atom(T_NIL);
-	allocator_true_atom = alloc_atom(T_TRUE);
-	allocator_false_atom = alloc_atom(T_FALSE);
-}
-
-atom_t* get_nil_atom(){
-	return allocator_nil_atom;
-}
-
-atom_t* get_true_atom(){
-	return allocator_true_atom;
-}
-
-atom_t* get_false_atom(){
-	return allocator_false_atom;
-}
-
-atom_t* alloc_atom(uint8_t type){
+// Private atom allocator function. Every atom comes from here.
+atom_t* atom_alloc(uint8_t type){
 	atom_t *ptr = malloc(sizeof(atom_t));
 	ptr->type = type;
 	return ptr;
 }
 
-atom_t* alloc_num(){
-	return alloc_atom(T_NUM);
+
+void memory_init(){
+	allocator_nil_atom = atom_alloc(T_NIL);
+	allocator_true_atom = atom_alloc(T_TRUE);
+	allocator_false_atom = atom_alloc(T_FALSE);
 }
 
-atom_t* alloc_sym(){
-	return alloc_atom(T_SYM);
+
+atom_t* nil_atom(){
+	return allocator_nil_atom;
 }
 
-atom_t* alloc_str(){
-	return alloc_atom(T_STR);
+atom_t* true_atom(){
+	return allocator_true_atom;
 }
 
-atom_t* alloc_pair(){
-	return alloc_atom(T_PAIR);
+atom_t* false_atom(){
+	return allocator_false_atom;
 }
 
-atom_t* alloc_buildin(buildin_func_t func){
-	atom_t *atom = alloc_atom(T_BUILDIN);
+
+atom_t* num_atom_alloc(int64_t value){
+	atom_t *atom = atom_alloc(T_NUM);
+	atom->num = value;
+	return atom;
+}
+
+atom_t* sym_atom_alloc(char *sym){
+	atom_t *atom = atom_alloc(T_SYM);
+	atom->sym = sym;
+	return atom;
+}
+
+atom_t* str_atom_alloc(char *str){
+	atom_t *atom = atom_alloc(T_STR);
+	atom->str = str;
+	return atom;
+}
+
+atom_t* pair_atom_alloc(atom_t *first, atom_t *rest){
+	if (first == NULL || rest == NULL){
+		warn("Tried to allocate a pair with a NULL pointer in it!");
+		return nil_atom();
+	}
+	
+	atom_t *atom = atom_alloc(T_PAIR);
+	atom->first = first;
+	atom->rest = rest;
+	return atom;
+}
+
+atom_t* buildin_atom_alloc(buildin_func_t func){
+	atom_t *atom = atom_alloc(T_BUILDIN);
 	atom->func = func;
 	return atom;
 }
 
-atom_t* alloc_lambda(){
-	return alloc_atom(T_LAMBDA);
+atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env){
+	atom_t *atom = atom_alloc(T_LAMBDA);
+	return atom;
 }
 
 
@@ -62,7 +81,7 @@ atom_t* alloc_lambda(){
 // Environment stuff
 //
 
-env_t* alloc_env(env_t *parent){
+env_t* env_alloc(env_t *parent){
 	env_t *env = malloc(sizeof(env_t));
 	env->length = 0;
 	env->parent = parent;
