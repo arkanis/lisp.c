@@ -43,3 +43,4 @@ mod_hello: mod_hello.c
 
 clean:
 	rm -f *.o *.so repl tests core
+	cd experiments; make clean

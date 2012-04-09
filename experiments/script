@@ -1,0 +1,3 @@
+#!/home/steven/projects/lisp-c/experiments/fake_interpreter some args
+(mod_load "./mod_hello.so")
+(test)
