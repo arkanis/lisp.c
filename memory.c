@@ -71,8 +71,11 @@ atom_t* buildin_atom_alloc(buildin_func_t func){
 	return atom;
 }
 
-atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env){
+atom_t* lambda_atom_alloc(atom_t *args, atom_t *body, env_t *env){
 	atom_t *atom = atom_alloc(T_LAMBDA);
+	atom->body = body;
+	atom->args = args;
+	atom->env = env;
 	return atom;
 }
 

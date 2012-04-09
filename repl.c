@@ -58,10 +58,12 @@ int interprete_files(env_t *env, int number_of_files, char **files){
 			continue;
 		}
 		
-		// Ignore the hash bang line on the files if there is one
+		// Ignore the hash bang line on the files if there is one, but leave any
+		// trailing newlines. The reader needs the newlines to properly track
+		// the line numbers.
 		int first_char = fgetc(stream);
 		if (first_char == '#')
-			fscanf(stream, "%*[^\n] ");
+			fscanf(stream, "%*[^\n]");
 		else
 			ungetc(first_char, stream);
 		
