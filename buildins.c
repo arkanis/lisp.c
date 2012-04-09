@@ -31,6 +31,10 @@ atom_t* buildin_lambda(atom_t *args, env_t *env){
 	return lambda_atom_alloc(args->first, args->rest->first, env);
 }
 
+atom_t* buildin_quote(atom_t *args, env_t *env){
+	return args->first;
+}
+
 
 //
 // Math
@@ -141,6 +145,7 @@ rest
 
 void register_buildins_in(env_t *env){
 	env_set(env, "define", buildin_atom_alloc(buildin_define));
+	env_set(env, "quote", buildin_atom_alloc(buildin_quote));
 	env_set(env, "+", buildin_atom_alloc(buildin_plus));
 	env_set(env, "-", buildin_atom_alloc(buildin_minus));
 	env_set(env, "if", buildin_atom_alloc(buildin_if));
