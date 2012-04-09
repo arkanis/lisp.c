@@ -6,7 +6,7 @@
 
 typedef struct {
 	FILE *stream;
-	uint64_t line;
+	uint64_t line, col;
 	bool eof;
 } reader_t;
 

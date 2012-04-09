@@ -7,6 +7,21 @@
 #include "reader.h"
 #include "logger.h"
 
+/*
+
+TODO:
+- comments (";")
+- recursive decent parser
+- quote
+
+read_while(reader, ...)
+read_while_func(reader, func)
+read_until(reader, ...)
+read_until_func(reader, func)
+read_one_of(...)
+
+*/
+
 
 int read_whitespaces(reader_t *reader);
 int read_scan(reader_t *reader, const char *format, ...);
@@ -19,6 +34,11 @@ atom_t* read_sym(reader_t *reader);
 
 atom_t* read_atom(reader_t *reader){
 	int c = read_whitespaces(reader);
+	
+	while(c == ';'){
+		fscanf(reader->stream, "%*[^\n]");
+		c = read_whitespaces(reader);
+	}
 	
 	if ( c == EOF )
 		return nil_atom();
