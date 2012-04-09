@@ -58,6 +58,15 @@ int interprete_files(env_t *env, int number_of_files, char **files){
 			continue;
 		}
 		
+		// Ignore the hash bang line on the files if there is one
+		int first_char = fgetc(stream);
+		if (first_char == '#')
+			fscanf(stream, "%*[^\n] ");
+		else if (first_char == EOF)
+			continue;
+		else
+			ungetc(first_char, stream);
+		
 		reader_t reader = {stream, 1, false};
 		while ( !reader.eof ){
 			atom_t *atom = read_atom(&reader);
