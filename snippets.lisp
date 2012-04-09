@@ -12,3 +12,6 @@
 	(lambda (b) (+ a b))
 ))
 (define +10 (make_adder 10))
+
+; load sample module (dynamic library)
+(mod_load "./mod_hello.so")
