@@ -62,8 +62,6 @@ int interprete_files(env_t *env, int number_of_files, char **files){
 		int first_char = fgetc(stream);
 		if (first_char == '#')
 			fscanf(stream, "%*[^\n] ");
-		else if (first_char == EOF)
-			continue;
 		else
 			ungetc(first_char, stream);
 		
