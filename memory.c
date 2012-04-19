@@ -79,6 +79,12 @@ atom_t* lambda_atom_alloc(atom_t *args, atom_t *body, env_t *env){
 	return atom;
 }
 
+atom_t* env_atom_alloc(env_t *env){
+	atom_t *atom = atom_alloc(T_ENV);
+	atom->env = env;
+	return atom;
+}
+
 
 //
 // Environment stuff

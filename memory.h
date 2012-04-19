@@ -66,6 +66,7 @@ struct env_s {
 #define T_PAIR 11
 #define T_BUILDIN 12
 #define T_LAMBDA 13
+#define T_ENV 14
 
 
 //
@@ -86,6 +87,7 @@ atom_t* str_atom_alloc(char *str);
 atom_t* pair_atom_alloc(atom_t *first, atom_t *rest);
 atom_t* buildin_atom_alloc(buildin_func_t func);
 atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env);
+atom_t* env_atom_alloc(env_t *env);
 
 // Environement functions
 env_t* env_alloc(env_t *parent);

@@ -38,6 +38,14 @@ void print_atom(FILE *stream, atom_t *atom){
 			print_atom(stream, atom->body);
 			fprintf(stream, ")");
 			break;
+		case T_ENV:
+			fprintf(stream, "environment %p with %d elements (parent %p)\n", atom->env, atom->env->length, atom->env->parent);
+			for(int i = 0; i < atom->env->length; i++){
+				fprintf(stream, "  %s: ", atom->env->bindings[i].key);
+				print_atom(stream, atom->env->bindings[i].value);
+				fprintf(stream, "\n");
+			}
+			break;
 		default:
 			fprintf(stream, "unknown atom, type %d", atom->type);
 			break;
