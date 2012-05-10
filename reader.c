@@ -10,7 +10,6 @@
 /*
 
 TODO:
-- comments (";")
 - recursive decent parser
 - quote
 

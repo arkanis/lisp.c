@@ -204,6 +204,17 @@ rest
 
 */
 
+atom_t* buildin_print(atom_t *args, env_t *env){
+	atom_t *string_atom = eval_atom(args->first, env);
+	if (string_atom->type != T_STR){
+		warn("print only works with strings");
+		return nil_atom();
+	}
+	
+	printf("%s\n", string_atom->str);
+	return nil_atom();
+}
+
 void register_buildins_in(env_t *env){
 	env_set(env, "define", buildin_atom_alloc(buildin_define));
 	env_set(env, "quote", buildin_atom_alloc(buildin_quote));
@@ -219,4 +230,5 @@ void register_buildins_in(env_t *env){
 	env_set(env, "env_new", buildin_atom_alloc(buildin_env_new));
 	env_set(env, "env_get", buildin_atom_alloc(buildin_env_get));
 	env_set(env, "env_set", buildin_atom_alloc(buildin_env_set));
+	env_set(env, "print", buildin_atom_alloc(buildin_print));
 }
