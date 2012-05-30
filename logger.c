@@ -1,13 +1,14 @@
-#include <stdio.h>
 #include <stdarg.h>
 #include <libgen.h>
 
 #include "logger.h"
 
-int log_level;
+int log_level = 0;
+output_stream_t *log_os = NULL;
 
-void log_setup(int level){
+void log_setup(int level, output_stream_t *os){
 	log_level = level;
+	log_os = os;
 }
 
 void log_printf(int level, const char *file, int line, const char *func, const char *format, ...){
@@ -22,12 +23,18 @@ void log_printf(int level, const char *file, int line, const char *func, const c
 	else if (level == LOG_ERROR)
 		label = "ERROR";
 	
-	fprintf(stderr, "[%s in %s:%d %s()]: ", label, basename((char*)file), line, func);
-	
 	va_list args;
 	va_start(args, format);
-	vfprintf(stderr, format, args);
-	va_end(args);
 	
-	fprintf(stderr, "\n");
+	if (log_os == NULL) {
+		fprintf(stderr, "[%s in %s:%d %s()]: ", label, basename((char*)file), line, func);
+		vfprintf(stderr, format, args);
+		fprintf(stderr, "\n");
+	} else {
+		os_printf(log_os, "[%s in %s:%d %s()]: ", label, basename((char*)file), line, func);
+		os_vprintf(log_os, format, args);
+		os_printf(log_os, "\n");
+	}
+	
+	va_end(args);
 }

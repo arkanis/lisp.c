@@ -32,15 +32,24 @@ reader.o: reader.h reader.c memory.o
 memory.o: memory.h memory.c logger.o
 	gcc $(GCC_ARGS) -c memory.c
 
+scanner.o: scanner.h scanner.c
+	gcc $(GCC_ARGS) -c scanner.c
+
 logger.o: logger.h logger.c
 	gcc $(GCC_ARGS) -c logger.c
+
+output_stream.o: output_stream.h output_stream.c
+	gcc $(GCC_ARGS) -c output_stream.c
 
 
 mod_hello: mod_hello.c
 	gcc $(GCC_ARGS) -c -fPIC mod_hello.c
 	gcc $(GCC_ARGS) -shared mod_hello.o -o mod_hello.so
 
+mod_bytecode: mod_bytecode.c
+	gcc $(GCC_ARGS) -c -fPIC mod_bytecode.c
+	gcc $(GCC_ARGS) -shared mod_bytecode.o -o mod_bytecode.so
 
 clean:
-	rm -f *.o *.so repl tests core
+	rm -f *.o *.so repl core
 	cd experiments; make clean
