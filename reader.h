@@ -1,15 +1,9 @@
 #ifndef _READER_H
 #define _READER_H
 
-#include <stdbool.h>
-#include <stdio.h>
+#include "scanner.h"
+#include "memory.h"
 
-typedef struct {
-	FILE *stream;
-	uint64_t line, col;
-	bool eof;
-} reader_t;
-
-atom_t* read_atom(reader_t *reader);
+atom_t* read_atom(scanner_t *scan);
 
 #endif

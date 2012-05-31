@@ -1,5 +1,7 @@
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -7,149 +9,96 @@
 #include "reader.h"
 #include "logger.h"
 
-/*
+atom_t* read_sym(scanner_t *scan);
+atom_t* read_list(scanner_t *scan);
 
-TODO:
-- recursive decent parser
-- quote
-
-read_while(reader, ...)
-read_while_func(reader, func)
-read_until(reader, ...)
-read_until_func(reader, func)
-read_one_of(...)
-
-*/
-
-
-int read_whitespaces(reader_t *reader);
-int read_scan(reader_t *reader, const char *format, ...);
-
-atom_t* read_list(reader_t *reader);
-atom_t* read_num(reader_t *reader);
-atom_t* read_str(reader_t *reader);
-atom_t* read_sym(reader_t *reader);
-
-
-atom_t* read_atom(reader_t *reader){
-	int c = read_whitespaces(reader);
+atom_t* read_atom(scanner_t *scan){
+	slice_t slice;
+	int c = scan_while_func(scan, NULL, isspace);
 	
-	while(c == ';'){
-		fscanf(reader->stream, "%*[^\n]");
-		c = read_whitespaces(reader);
+	while (c == ';'){
+		scan_until(scan, NULL, '\n');
+		c = scan_peek(scan);
 	}
 	
-	if ( c == EOF )
+	if (c == EOF) {
 		return nil_atom();
-	else if ( c == '(' ) {
-		return read_list(reader);
-	} else if ( c == '"' ) {
-		return read_str(reader);
+	} else if (c == '(') {
+		return read_list(scan);
+	} else if (c == '\'') {
+		// Quote
+		scan_one_of(scan, '\'');
+		atom_t *content = read_atom(scan);
+		return pair_atom_alloc(sym_atom_alloc("quote"), pair_atom_alloc(content, nil_atom()));
+	} else if (c == '"') {
+		// String
+		scan_one_of(scan, '"');
+		scan_until(scan, &slice, '"');
+		return str_atom_alloc(slice.ptr);
 	} else if ( isdigit(c) ) {
-		ungetc(c, reader->stream);
-		return read_num(reader);
+		// Number
+		scan_while_func(scan, &slice, isdigit);
+		int64_t value = strtoll(slice.ptr, NULL, 10);
+		free(slice.ptr);
+		return num_atom_alloc(value);
 	} else {
-		ungetc(c, reader->stream);
-		return read_sym(reader);
+		return read_sym(scan);
 	}
 }
 
-
-/**
- * Reads all whitespaces from the reader stream. Increments the reader
- * line number for each encountered line break. The first non whitespace
- * character is returned (as `int` to preserve EOF).
- */
-int read_whitespaces(reader_t *reader){
-	char c;
-	do {
-		c = fgetc(reader->stream);
-		if (c == '\n')
-			reader->line++;
-		else if (c == EOF)
-			reader->eof = true;
-	} while ( isspace(c) );
-	return c;
-}
-
-atom_t* read_list(reader_t *reader){
+atom_t* read_list(scanner_t *scan){
 	int c;
 	atom_t* list_start_atom = pair_atom_alloc( nil_atom(), nil_atom() );
 	atom_t* current_atom = list_start_atom;
 	
+	scan_one_of(scan, '(');
 	while (true) {
-		current_atom->first = read_atom(reader);
+		current_atom->first = read_atom(scan);
 		
-		c = read_whitespaces(reader);
-		if ( c == EOF ) {
-			break;
-		} else if ( c == ')' ) {
+		c = scan_while_func(scan, NULL, isspace);
+		if (c == ')') {
+			scan_one_of(scan, ')');
 			current_atom->rest = nil_atom();
 			break;
-		} else if ( c == '.' ) {
-			current_atom->rest = read_atom(reader);
-			// Consume trailing whitespaces and the closing list parenthesis
-			c = read_whitespaces(reader);
-			if ( c == ')' )
-				break;
-			else
-				return nil_atom();
-		} else {
-			ungetc(c, reader->stream);
+		} else if (c == '.') {
+			scan_one_of(scan, '.');
+			current_atom->rest = read_atom(scan);
+			scan_while_func(scan, NULL, isspace);
+			scan_one_of(scan, ')');
+			break;
+		} else if (c == EOF) {
+			return nil_atom();
 		}
 		
 		current_atom->rest = pair_atom_alloc( nil_atom(), nil_atom() );
 		current_atom = current_atom->rest;
 	}
 	
-	if ( reader->eof )
-		return nil_atom();
-	else
-		return list_start_atom;
+	return list_start_atom;
 }
 
-atom_t* read_num(reader_t *reader){
-	int64_t value = 0;
-	if ( read_scan(reader, "%ld", &value) == 1 )
-		return num_atom_alloc(value);
-	else
-		return nil_atom();
-}
-
-atom_t* read_str(reader_t *reader){
-	char *str = NULL;
-	// Consumes the string until the double quote and the trailing double quote
-	if ( read_scan(reader, "%m[^\"]\"", &str) == 1 )
-		return str_atom_alloc(str);
-	else
-		return nil_atom();
-}
-
-atom_t* read_sym(reader_t *reader){
-	char *sym = NULL;
-	// Consume the symbol
-	if ( read_scan(reader, "%m[^ \t\n()]", &sym) == 1 ) {
-		if ( strcmp(sym, "nil") == 0 )
-			return nil_atom();
-		else if ( strcmp(sym, "true") == 0 )
-			return true_atom();
-		else if ( strcmp(sym, "false") == 0 )
-			return false_atom();
-		
-		return sym_atom_alloc(sym);
+atom_t* read_sym(scanner_t *scan){
+	
+	int is_extra_sym_char(int c){
+		switch(c){
+			case '_': case '-':
+				return true;
+		}
+		return false;
 	}
-
-	return nil_atom();
-}
-
-int read_scan(reader_t *reader, const char *format, ...){
-	va_list args;
-	va_start(args, format);
-	int ret = vfscanf(reader->stream, format, args);
-	va_end(args);
 	
-	if (ret == EOF)
-		reader->eof = true;
+	slice_t slice;
+	scan_while_func(scan, &slice, isalnum, is_extra_sym_char);
+	if ( strcmp(slice.ptr, "nil") == 0 ) {
+		free(slice.ptr);
+		return nil_atom();
+	} else if ( strcmp(slice.ptr, "true") == 0 ) {
+		free(slice.ptr);
+		return true_atom();
+	} else if ( strcmp(slice.ptr, "false") == 0 ) {
+		free(slice.ptr);
+		return false_atom();
+	}
 	
-	return ret;
+	return sym_atom_alloc(slice.ptr);
 }

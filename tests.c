@@ -26,53 +26,15 @@ int tests_passed = 0;
 int tests_failed = 0;
 
 void test_logger(){
+	log_setup(LOG_INFO, stderr);
 	info("test info: %d", 123);
 	warn("test warning: %d, %s", 123, "hello");
 	error("test error: %s", "world");
+	
+	log_setup(LOG_INFO, stderr);
 }
 
-void test_reader(){
-	atom_t *atom = NULL;
-	
-	atom = read_code("123");
-	test(atom->type == T_NUM && atom->num == 123, "got type: %d, num: %ld", atom->type, atom->num);
-	
-	atom = read_code("sym");
-	test(atom->type == T_SYM && strcmp(atom->sym, "sym") == 0, "got type: %d, sym: %s", atom->type, atom->sym);
-	
-	atom = read_code("\"str\"");
-	test(atom->type == T_STR && strcmp(atom->str, "str") == 0, "got type: %d, str: %s", atom->type, atom->str);
-	
-	atom = read_code("nil");
-	test(atom->type == T_NIL && atom == nil_atom(), "got type: %d, atom: %p, nil atom: %p", atom->type, atom, nil_atom());
-	
-	atom = read_code("true");
-	test(atom->type == T_TRUE && atom == true_atom(), "got type: %d, atom: %p, true atom: %p", atom->type, atom, true_atom());
-	
-	atom = read_code("false");
-	test(atom->type == T_FALSE && atom == false_atom(), "got type: %d, atom: %p, false atom: %p", atom->type, atom, false_atom());
-	
-	atom = read_code("(1)");
-	test(atom->type == T_PAIR
-		&& atom->first->type == T_NUM && atom->first->num == 1
-		&& atom->rest->type == T_NIL
-	, "failed to read a list with one entry");
-	
-	atom = read_code("(1 . 2)");
-	test(atom->type == T_PAIR
-		&& atom->first->type == T_NUM && atom->first->num == 1
-		&& atom->rest->type == T_NUM && atom->rest->num == 2
-	, "failed to read a not nil terminated list");
-	
-	atom = read_code("(1 2 3)");
-	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 1, "failed to read a list with tree elements (1. element)");
-	atom = atom->rest;
-	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 2, "failed to read a list with tree elements (2. element)");
-	atom = atom->rest;
-	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 3, "failed to read a list with tree elements (3. element)");
-	atom = atom->rest;
-	test(atom->type == T_NIL, "failed to read a list with tree elements (nil terminator)");
-}
+
 
 void test_printer(){
 	atom_t *atom = NULL;
@@ -152,7 +114,7 @@ int main(){
 	
 	test_logger();
 	test_reader();
-	test_printer();
+	//test_printer();
 	test_env();
 	test_eval();
 	
@@ -166,23 +128,7 @@ int main(){
 // Utility functions
 //
 
-void test_func(bool expr, const char *code, const char *message, ...){
-	if (expr) {
-		tests_passed++;
-		fprintf(stderr, ".");
-		fflush(stderr);
-	} else {
-		tests_failed++;
-		fprintf(stderr, "FAIL %s: ", code);
-		
-		va_list args;
-		va_start(args, message);
-		vfprintf(stderr, message, args);
-		va_end(args);
-		
-		fprintf(stderr, "\n");
-	}
-}
+
 
 atom_t* read_code(const char *code){
 	int reader_pipe[2];
@@ -219,3 +165,4 @@ void print_code(atom_t *atom, print_code_handler_t handler){
 	
 	fclose(printer_out);
 }
+
