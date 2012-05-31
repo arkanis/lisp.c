@@ -53,3 +53,4 @@ mod_bytecode: mod_bytecode.c
 clean:
 	rm -f *.o *.so repl core
 	cd experiments; make clean
+	cd tests; make clean
