@@ -280,15 +280,34 @@ int scan_while_func_with_raw_args(scanner_t *scanner, slice_t* slice, scanner_ch
 
 
 /**
- * Reads one character and returns it. Pretty useless right now because there is no error handling yet.
+ * Consumes one character and returns it. Only useful right now to consume individual characters.
+ * No error handling yet.
+ * 
+ * The character is only consumed if it matches one of the tokens.
  */
 int scan_one_of_with_raw_args(scanner_t *scanner, int tokens[]){
 	int c = read_next_char(scanner);
 	
 	for(size_t token_idx = 0; tokens[token_idx] != -2; token_idx++){
-		if (c == tokens[token_idx])
+		if (c == tokens[token_idx]){
+			scanner->buffer_consumed++;
 			return c;
+		}
 	}
 	
 	return c;
+}
+
+
+/**
+ * Returns the next character in the stream without consuming it.
+ */
+int scan_peek(scanner_t *scanner){
+	if (scanner->buffer_pos >= scanner->buffer_filled){
+		ssize_t bytes_read = read_into_buffer(scanner);
+		if (bytes_read == 0)
+			return EOF;
+	}
+	
+	return scanner->buffer_ptr[scanner->buffer_pos];
 }

@@ -46,10 +46,10 @@ void test_scan_while(){
 	
 	// Throw the first two lines away
 	scan_until(&scan, &slice, '\n');
-	test(strcmp(slice.ptr, "\"hello world\"") == 0, "expected the first line but gut %s", slice.ptr);
+	test(strcmp(slice.ptr, "\"hello world\"") == 0, "expected the first line but got %s", slice.ptr);
 	free(slice.ptr);
 	scan_until(&scan, &slice, '\n');
-	test(strcmp(slice.ptr, "\t ") == 0, "expected the second line but gut %s", slice.ptr);
+	test(strcmp(slice.ptr, "\t ") == 0, "expected the second line but got %s", slice.ptr);
 	free(slice.ptr);
 	
 	int c = scan_while(&scan, &slice, '0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
@@ -75,10 +75,18 @@ void test_scan_one_of(){
 	
 	int c = scan_one_of(&scan, '"');
 	test(c == '"', "expected an \", got %c", c);
-	c = scan_one_of(&scan, 'h');
-	test(c == 'h', "expected h, got %c", c);
-	c = scan_one_of(&scan, 'x', 'y', 'e');
-	test(c == 'e', "expected a, got %c", c);
+	
+	// This tests if scan_one_of really consumes one character and not only
+	// increments the buffer position.
+	slice_t slice;
+	c = scan_until(&scan, &slice, '"');
+	test(strcmp(slice.ptr, "hello world") == 0, "expected the string content without quotes but got %s", slice.ptr);
+	free(slice.ptr);
+	
+	c = scan_one_of(&scan, '\n');
+	test(c == '\n', "expected a line break, got %d", c);
+	c = scan_one_of(&scan, ' ', '\n', '\t');
+	test(c == '\t', "expected a tab, got %d", c);
 	
 	scan_close(&scan);
 	close(fd);
@@ -156,7 +164,7 @@ void test_string_scanner(){
 	
 	c = scan_until(&scan, &slice, ')');
 	test(c == ')', "expected ) as terminator but got %c", c);
-	test(strcmp(slice.ptr, "hello"), "got unexpected argument word: %s", slice.ptr);
+	test(strcmp(slice.ptr, "hello") == 0, "got unexpected argument word: %s", slice.ptr);
 	free(slice.ptr);
 	
 	c = scan_until(&scan, &slice, EOF);
@@ -167,6 +175,32 @@ void test_string_scanner(){
 	
 	scan_close(&scan);
 }
+
+void test_scan_peek(){
+	scanner_t scan = scan_open_string("say(hello)");
+	
+	int c = scan_peek(&scan);
+	test(c == 's', "expected the first character but got %c", c);
+	test(scan.col == 1, "expected to still be at column 1 but got column %d", scan.col);
+	
+	slice_t slice;
+	c = scan_while_func(&scan, NULL, isalpha);
+	test(c == '(', "expected ( as terminator but got %c", c);
+	test(strcmp(slice.ptr, "say") == 0, "got unexpected first word: \"%s\"", slice.ptr);
+	free(slice.ptr);
+	
+	c = scan_peek(&scan);
+	test(c == '(', "expected ( but got %c", c);
+	
+	c = scan_until(&scan, NULL, EOF);
+	test(c == EOF, "expected EOF as terminator but got %d", c);
+	
+	c = scan_peek(&scan);
+	test(c == EOF, "expected EOF but got %d", c);
+	
+	scan_close(&scan);
+}
+
 
 
 int main(){

@@ -32,4 +32,6 @@ int scan_while_func_with_raw_args(scanner_t *scanner, slice_t* slice, scanner_ch
 #define scan_one_of(scanner, ...) scan_one_of_with_raw_args(scanner, (int[]){ __VA_ARGS__, -2 })
 int scan_one_of_with_raw_args(scanner_t *scanner, int tokens[]);
 
+int scan_peek(scanner_t *scanner);
+
 #endif
