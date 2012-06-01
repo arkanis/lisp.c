@@ -1,5 +1,5 @@
 GCC_ARGS = -Wall -std=gnu99 -g
-OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o
+OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o
 LINKER_ARGS = -ldl
 
 run: tests repl
@@ -10,13 +10,11 @@ run: tests repl
 # The -rdynamic flag makes sure that the functions of the main programs are in their
 # ELFs .dynsym section. All symbols in this section can be used by shared libraries that
 # are loaded later on.
-tests: tests.c $(OBJ_FILES)
-	gcc $(GCC_ARGS) -rdynamic tests.c $(OBJ_FILES) $(LINKER_ARGS) -o tests
-
 repl: repl.c $(OBJ_FILES)
 	gcc $(GCC_ARGS) -rdynamic repl.c $(OBJ_FILES) $(LINKER_ARGS) -o repl
 
 
+# Indiviual components
 buildins.o: buildins.h buildins.c memory.o
 	gcc $(GCC_ARGS) -c buildins.c
 

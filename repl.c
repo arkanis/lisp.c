@@ -1,5 +1,8 @@
 #include <stdio.h>
-#include <stdbool.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "memory.h"
@@ -32,18 +35,21 @@ int main(int argc, char **argv){
  * Shows an interactive command line
  */
 int repl(env_t *env){
-	reader_t reader = {stdin, 1, false};
+	scanner_t scan = scan_open(STDIN_FILENO);
+	output_stream_t os = os_new(stdout);
 	
-	while ( !reader.eof ) {
-		printf("%ld > ", reader.line);
+	do {
+		printf("%zd > ", scan.line);
 		fflush(stdout);
-		atom_t *atom = read_atom(&reader);
+		atom_t *atom = read_atom(&scan);
 		atom = eval_atom(atom, env);
-		print_atom(stdout, atom);
+		print_atom(&os, atom);
 		printf("\n");
-	}
+	} while ( scan_peek(&scan) != EOF );
 	
 	printf("Encountered EOF. Have a nice day.\n");
+	scan_close(&scan);
+	
 	return 0;
 }
 
@@ -52,28 +58,25 @@ int repl(env_t *env){
  */
 int interprete_files(env_t *env, int number_of_files, char **files){
 	for(int i = 0; i < number_of_files; i++){
-		FILE *stream = fopen(files[i], "rb");
-		if (stream == NULL){
+		int fd = open(files[i], O_RDONLY);
+		if (fd == -1){
 			fprintf(stderr, "Failed to run file %s: %s\n", files[i], sys_errlist[errno]);
 			continue;
 		}
 		
-		// Ignore the hash bang line on the files if there is one, but leave any
-		// trailing newlines. The reader needs the newlines to properly track
-		// the line numbers.
-		int first_char = fgetc(stream);
-		if (first_char == '#')
-			fscanf(stream, "%*[^\n]");
-		else
-			ungetc(first_char, stream);
+		scanner_t scan = scan_open(fd);
 		
-		reader_t reader = {stream, 1, false};
-		while ( !reader.eof ){
-			atom_t *atom = read_atom(&reader);
+		// Ignore the hash bang line on the files if there is one.
+		if ( scan_peek(&scan) == '#' )
+			scan_until(&scan, NULL, '\n');
+		
+		while ( scan_peek(&scan) != EOF ){
+			atom_t *atom = read_atom(&scan);
 			eval_atom(atom, env);
 		}
 		
-		fclose(stream);
+		scan_close(&scan);
+		close(fd);
 	}
 	
 	return 0;
