@@ -81,14 +81,14 @@ atom_t* read_sym(scanner_t *scan){
 	
 	int is_extra_sym_char(int c){
 		switch(c){
-			case '_': case '-':
-				return true;
+			case '(':  case ')': case ';': case EOF: case '\'': case '"':
+				return false;
 		}
-		return false;
+		return !isspace(c);
 	}
 	
 	slice_t slice;
-	scan_while_func(scan, &slice, isalnum, is_extra_sym_char);
+	scan_while_func(scan, &slice, is_extra_sym_char);
 	if ( strcmp(slice.ptr, "nil") == 0 ) {
 		free(slice.ptr);
 		return nil_atom();

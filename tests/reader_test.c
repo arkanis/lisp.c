@@ -25,6 +25,9 @@ void test_reader(){
 	atom = read_test_code("sym");
 	test(atom->type == T_SYM && strcmp(atom->sym, "sym") == 0, "got type: %d, sym: %s", atom->type, atom->sym);
 	
+	atom = read_test_code("+");
+	test(atom->type == T_SYM && strcmp(atom->sym, "+") == 0, "got type: %d, sym: %s", atom->type, atom->sym);
+	
 	atom = read_test_code("\"str\"");
 	test(atom->type == T_STR && strcmp(atom->str, "str") == 0, "got type: %d, str: %s", atom->type, atom->str);
 	
@@ -57,6 +60,23 @@ void test_reader(){
 	test(atom->type == T_PAIR && atom->first->type == T_NUM && atom->first->num == 3, "failed to read a list with tree elements (3. element)");
 	atom = atom->rest;
 	test(atom->type == T_NIL, "failed to read a list with tree elements (nil terminator)");
+	
+	atom = read_test_code("(symbol)");
+	test(atom->type == T_PAIR, "expected a pair, got type %d", atom->type);
+	test(atom->first->type == T_SYM, "expected a symbol as first element, got type %d", atom->first->type);
+	test(strcmp(atom->first->sym, "symbol") == 0, "unexpected symbol value: %s", atom->first->sym);
+	test(atom->rest->type == T_NIL, "expected a nil terminator in the rest, got type %d", atom->rest->type);
+}
+
+void test_quoting(){
+	atom_t *atom = read_test_code("'foo");
+	test(atom->type == T_PAIR, "expected a pair with quote in it, got type: %d", atom->type);
+	test(atom->first->type == T_SYM, "expected the quote symbol, got type: %d", atom->first->type);
+	test(strcmp(atom->first->sym, "quote") == 0, "expected the quote symbol, got symbol %s", atom->first->sym);
+	test(atom->rest->type == T_PAIR, "expected the argument list pair for the quote, got type: %d", atom->rest->type);
+	test(atom->rest->first->type == T_SYM, "expected the foo symbol as quote argument, got type: %d", atom->rest->first->type);
+	test(strcmp(atom->rest->first->sym, "foo") == 0, "expected the foo symbol as quote argument, got symbol: %s", atom->rest->first->sym);
+	test(atom->rest->rest->type == T_NIL, "expected the nil terminator, got type: %d", atom->rest->rest->type);
 }
 
 
@@ -65,5 +85,6 @@ int main(){
 	memory_init();
 	
 	test_reader();
+	test_quoting();
 	return show_test_report();
 }

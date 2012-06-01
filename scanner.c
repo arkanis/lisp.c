@@ -295,6 +295,13 @@ int scan_one_of_with_raw_args(scanner_t *scanner, int tokens[]){
 		}
 	}
 	
+	/*
+	printf("failed to consume one of the tokens:");
+	for(size_t token_idx = 0; tokens[token_idx] != -2; token_idx++)
+		printf(" %c", tokens[token_idx]);
+	printf("\n");
+	*/
+	
 	return c;
 }
 
