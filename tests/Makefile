@@ -1,6 +1,10 @@
 GCC_ARGS = -Wall -std=gnu99 -g
 
-printer_test: printer_test.c ../printer.h ../printer.c
+eval_test: eval_test.c ../eval.h ../eval.c test_utils.o
+	cd ..; make eval.o printer.o reader.o buildins.o
+	gcc $(GCC_ARGS) eval_test.c test_utils.o ../*.o -ldl -o eval_test
+
+printer_test: printer_test.c ../printer.h ../printer.c test_utils.o
 	cd ..; make printer.o reader.o
 	gcc $(GCC_ARGS) printer_test.c test_utils.o ../*.o -o printer_test
 
