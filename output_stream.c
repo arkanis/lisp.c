@@ -50,3 +50,9 @@ int os_vprintf(output_stream_t *os, const char *format, va_list args){
 	
 	return result;
 }
+
+void os_clear(output_stream_t *os){
+	os->buffer_filled = 0;
+	if (os->buffer_ptr && os->buffer_size > 0)
+		os->buffer_ptr[0] = '\0';
+}

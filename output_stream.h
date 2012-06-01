@@ -14,5 +14,6 @@ output_stream_t os_new_capture(size_t capture_buffer_size);
 void os_destroy(output_stream_t *os);
 int os_printf(output_stream_t *os, const char *format, ...);
 int os_vprintf(output_stream_t *os, const char *format, va_list args);
+void os_clear(output_stream_t *os);
 
 #endif
