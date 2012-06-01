@@ -1,71 +1,77 @@
 #include <stdint.h>
+#include <string.h>
 
 #include "memory.h"
 #include "printer.h"
 
-void print_list(FILE *stream, atom_t *list_atom);
+void print_list(output_stream_t *stream, atom_t *list_atom);
 
-void print_atom(FILE *stream, atom_t *atom){
+void print_atom(output_stream_t *stream, atom_t *atom){
 	switch(atom->type){
 		case T_NUM:
-			fprintf(stream, "%ld", atom->num);
+			os_printf(stream, "%ld", atom->num);
 			break;
 		case T_SYM:
-			fprintf(stream, "%s", atom->sym);
+			os_printf(stream, "%s", atom->sym);
 			break;
 		case T_STR:
-			fprintf(stream, "\"%s\"", atom->str);
+			os_printf(stream, "\"%s\"", atom->str);
 			break;
 		case T_NIL:
-			fprintf(stream, "nil");
+			os_printf(stream, "nil");
 			break;
 		case T_TRUE:
-			fprintf(stream, "true");
+			os_printf(stream, "true");
 			break;
 		case T_FALSE:
-			fprintf(stream, "false");
+			os_printf(stream, "false");
 			break;
 		case T_PAIR:
-			print_list(stream, atom);
+			if ( atom->first->type == T_SYM && atom->rest->type == T_PAIR && strcmp(atom->first->sym, "quote") == 0 ) {
+				os_printf(stream, "'");
+				print_atom(stream, atom->rest->first);
+			} else {
+				print_list(stream, atom);
+			}
 			break;
 		case T_BUILDIN:
-			fprintf(stream, "buildin at %p", atom->func);
+			os_printf(stream, "buildin at %p", atom->func);
 			break;
 		case T_LAMBDA:
-			fprintf(stream, "(lambda ");
+			os_printf(stream, "(lambda ");
 			print_atom(stream, atom->args);
-			fprintf(stream, " ");
+			os_printf(stream, " ");
 			print_atom(stream, atom->body);
-			fprintf(stream, ")");
+			os_printf(stream, ")");
 			break;
 		case T_ENV:
-			fprintf(stream, "environment %p with %d elements (parent %p)\n", atom->env, atom->env->length, atom->env->parent);
+			os_printf(stream, "environment %p with %d elements (parent %p)\n", atom->env, atom->env->length, atom->env->parent);
 			for(int i = 0; i < atom->env->length; i++){
-				fprintf(stream, "  %s: ", atom->env->bindings[i].key);
+				os_printf(stream, "  %s: ", atom->env->bindings[i].key);
 				print_atom(stream, atom->env->bindings[i].value);
-				fprintf(stream, "\n");
+				os_printf(stream, "\n");
 			}
 			break;
 		default:
-			fprintf(stream, "unknown atom, type %d", atom->type);
+			os_printf(stream, "unknown atom, type %d", atom->type);
 			break;
 	}
 }
 
-void print_list(FILE *stream, atom_t *list_atom){
-	fprintf(stream, "(");
+void print_list(output_stream_t *stream, atom_t *list_atom){
+	os_printf(stream, "(");
 	
 	while (list_atom->type == T_PAIR) {
 		print_atom(stream, list_atom->first);
 		list_atom = list_atom->rest;
 		if (list_atom->type == T_PAIR)
-			fprintf(stream, " ");
+			os_printf(stream, " ");
 	}
 	
 	if ( list_atom->type != T_NIL ) {
-		fprintf(stream, " . ");
+		os_printf(stream, " . ");
 		print_atom(stream, list_atom);
 	}
 	
-	fprintf(stream, ")");
+	os_printf(stream, ")");
 }

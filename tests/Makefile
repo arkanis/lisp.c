@@ -1,8 +1,12 @@
 GCC_ARGS = -Wall -std=gnu99 -g
 
+printer_test: printer_test.c ../printer.h ../printer.c
+	cd ..; make printer.o reader.o
+	gcc $(GCC_ARGS) printer_test.c test_utils.o ../*.o -o printer_test
+
 reader_test: reader_test.c ../scanner.h ../scanner.c ../reader.h ../reader.c ../memory.h ../memory.c test_utils.o
-	cd ..; make scanner.o reader.o memory.o logger.o output_stream.o
-	gcc $(GCC_ARGS) reader_test.c test_utils.o ../scanner.o ../reader.o ../memory.o ../logger.o ../output_stream.o -o reader_test
+	cd ..; make reader.o
+	gcc $(GCC_ARGS) reader_test.c test_utils.o ../*.o -o reader_test
 
 logger_test: logger_test.c ../output_stream.c ../output_stream.h test_utils.o
 	cd ..; make logger.o

@@ -36,19 +36,7 @@ void test_logger(){
 
 
 
-void test_printer(){
-	atom_t *atom = NULL;
-	
-	atom = read_code("(1 (2) (3))");
-	print_code(atom, lambda(void, (char *code){
-		test( strcmp(code, "(1 (2) (3))") == 0, "printer output differs: %s", code);
-	}));
-	
-	atom = read_code("(define (plus a b) (+ a b))");
-	print_code(atom, lambda(void, (char *code){
-		test( strcmp(code, "(define (plus a b) (+ a b))") == 0, "printer output differs: %s", code);
-	}));
-}
+
 
 void test_env(){
 	env_t *env = env_alloc(NULL);
@@ -113,7 +101,7 @@ int main(){
 	memory_init();
 	
 	test_logger();
-	test_reader();
+	//test_reader();
 	//test_printer();
 	test_env();
 	test_eval();

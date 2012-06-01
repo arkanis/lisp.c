@@ -23,10 +23,10 @@ buildins.o: buildins.h buildins.c memory.o
 eval.o: eval.h eval.c memory.o logger.o
 	gcc $(GCC_ARGS) -c eval.c
 
-printer.o: printer.h printer.c memory.o
+printer.o: printer.h printer.c memory.o output_stream.o
 	gcc $(GCC_ARGS) -c printer.c
 
-reader.o: reader.h reader.c memory.o
+reader.o: reader.h reader.c memory.o scanner.o
 	gcc $(GCC_ARGS) -c reader.c
 
 memory.o: memory.h memory.c logger.o
@@ -35,7 +35,7 @@ memory.o: memory.h memory.c logger.o
 scanner.o: scanner.h scanner.c
 	gcc $(GCC_ARGS) -c scanner.c
 
-logger.o: logger.h logger.c
+logger.o: logger.h logger.c output_stream.o
 	gcc $(GCC_ARGS) -c logger.c
 
 output_stream.o: output_stream.h output_stream.c
