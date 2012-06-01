@@ -205,13 +205,28 @@ rest
 */
 
 atom_t* buildin_print(atom_t *args, env_t *env){
-	atom_t *string_atom = eval_atom(args->first, env);
-	if (string_atom->type != T_STR){
-		warn("print only works with strings");
-		return nil_atom();
+	atom_t *atom = eval_atom(args->first, env);
+	switch(atom->type){
+		case T_STR:
+			printf("%s\n", atom->str);
+			break;
+		case T_NUM:
+			printf("%ld\n", atom->num);
+			break;
+		case T_NIL:
+			printf("nil\n");
+			break;
+		case T_TRUE:
+			printf("true\n");
+			break;
+		case T_FALSE:
+			printf("false\n");
+			break;
+		default:
+			warn("unsuppored atom type for print: %d", atom->type);
+			break;
 	}
 	
-	printf("%s\n", string_atom->str);
 	return nil_atom();
 }
 
