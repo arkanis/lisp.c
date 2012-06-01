@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "memory.h"
 #include "printer.h"
 
 void print_list(output_stream_t *stream, atom_t *list_atom);

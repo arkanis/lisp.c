@@ -5,7 +5,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "memory.h"
 #include "reader.h"
 #include "logger.h"
 

@@ -1,11 +1,14 @@
 #ifndef _SCANNER_H
 #define _SCANNER_H
 
+#include <stdbool.h>
+
 typedef struct {
 	int fd;
 	char *buffer_ptr;
 	size_t buffer_size, buffer_pos, buffer_consumed, buffer_filled;
 	size_t line, col, prev_col;
+	bool eof;
 } scanner_t;
 
 typedef struct {

@@ -15,7 +15,7 @@ scanner_t scan_open(int fd){
 	return (scanner_t){
 		.fd = fd, .buffer_ptr = malloc(4096),
 		.buffer_size = 4096, .buffer_pos = 0, .buffer_consumed = 0, .buffer_filled = 0,
-		.line = 1, .col = 1
+		.line = 1, .col = 1, .eof = false
 	};
 }
 
@@ -29,7 +29,7 @@ scanner_t scan_open_string(char *code){
 	return (scanner_t){
 		.fd = -1, .buffer_ptr = code,
 		.buffer_size = len, .buffer_pos = 0, .buffer_consumed = 0, .buffer_filled = len,
-		.line = 1, .col = 1
+		.line = 1, .col = 1, .eof = false
 	};
 }
 
@@ -80,6 +80,25 @@ static int read_into_buffer(scanner_t *scanner){
 
 
 /**
+ * Returns the next character in the stream without consuming it.
+ */
+int scan_peek(scanner_t *scanner){
+	if (scanner->eof)
+		return EOF;
+	
+	if (scanner->buffer_pos >= scanner->buffer_filled){
+		ssize_t bytes_read = read_into_buffer(scanner);
+		if (bytes_read == 0){
+			scanner->eof = true;
+			return EOF;
+		}
+	}
+	
+	return scanner->buffer_ptr[scanner->buffer_pos];
+}
+
+
+/**
  * Returns the next character from the scanner buffer or EOF at the end of the file. If we're at the end of the scanner
  * buffer new data is read from the file descriptor.
  * 
@@ -87,13 +106,9 @@ static int read_into_buffer(scanner_t *scanner){
  * scanner yourself.
  */
 static int read_next_char(scanner_t *scanner){
-	if (scanner->buffer_pos >= scanner->buffer_filled){
-		ssize_t bytes_read = read_into_buffer(scanner);
-		if (bytes_read == 0)
-			return EOF;
-	}
-	
-	int c = scanner->buffer_ptr[scanner->buffer_pos];
+	int c = scan_peek(scanner);
+	if (c == EOF)
+		return EOF;
 	scanner->buffer_pos++;
 	
 	if (c == '\n') {
@@ -106,6 +121,7 @@ static int read_next_char(scanner_t *scanner){
 	
 	return c;
 }
+
 
 /**
  * Moves the buffer position back by 1 and adjusts line and column numbers accordingly.
@@ -303,18 +319,4 @@ int scan_one_of_with_raw_args(scanner_t *scanner, int tokens[]){
 	*/
 	
 	return c;
-}
-
-
-/**
- * Returns the next character in the stream without consuming it.
- */
-int scan_peek(scanner_t *scanner){
-	if (scanner->buffer_pos >= scanner->buffer_filled){
-		ssize_t bytes_read = read_into_buffer(scanner);
-		if (bytes_read == 0)
-			return EOF;
-	}
-	
-	return scanner->buffer_ptr[scanner->buffer_pos];
 }

@@ -1,16 +1,24 @@
 GCC_ARGS = -Wall -std=gnu99 -g
 
+tests: eval_test printer_test reader_test logger_test scanner_test output_stream_test
+	./output_stream_test
+	./logger_test
+	./scanner_test
+	./reader_test
+	./printer_test
+	./eval_test
+
 eval_test: eval_test.c ../eval.h ../eval.c test_utils.o
 	cd ..; make eval.o printer.o reader.o buildins.o
 	gcc $(GCC_ARGS) eval_test.c test_utils.o ../*.o -ldl -o eval_test
 
 printer_test: printer_test.c ../printer.h ../printer.c test_utils.o
 	cd ..; make printer.o reader.o
-	gcc $(GCC_ARGS) printer_test.c test_utils.o ../*.o -o printer_test
+	gcc $(GCC_ARGS) printer_test.c test_utils.o ../printer.o ../logger.o ../reader.o ../output_stream.o ../memory.o ../scanner.o -o printer_test
 
 reader_test: reader_test.c ../scanner.h ../scanner.c ../reader.h ../reader.c ../memory.h ../memory.c test_utils.o
 	cd ..; make reader.o
-	gcc $(GCC_ARGS) reader_test.c test_utils.o ../*.o -o reader_test
+	gcc $(GCC_ARGS) reader_test.c test_utils.o ../reader.o ../scanner.o ../memory.o ../logger.o ../output_stream.o -o reader_test
 
 logger_test: logger_test.c ../output_stream.c ../output_stream.h test_utils.o
 	cd ..; make logger.o
