@@ -43,6 +43,9 @@ void print_atom(output_stream_t *stream, atom_t *atom){
 			print_atom(stream, atom->body);
 			os_printf(stream, ")");
 			break;
+		case T_CUSTOM:
+			os_printf(stream, "custom atom, type: %ud, data: %p, func: %p", atom->custom.type, atom->custom.data, atom->custom.func);
+			break;
 		case T_ENV:
 			os_printf(stream, "environment %p with %d elements (parent %p)\n", atom->env, atom->env->length, atom->env->parent);
 			for(int i = 0; i < atom->env->length; i++){

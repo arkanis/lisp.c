@@ -85,6 +85,14 @@ atom_t* env_atom_alloc(env_t *env){
 	return atom;
 }
 
+atom_t* custom_atom_alloc(uint64_t type, void *data, buildin_func_t func){
+	atom_t *atom = atom_alloc(T_CUSTOM);
+	atom->custom.type = type;
+	atom->custom.data = data;
+	atom->custom.func = func;
+	return atom;
+}
+
 
 //
 // Environment stuff

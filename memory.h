@@ -29,6 +29,11 @@ struct atom_s {
 			atom_t *args;
 			env_t *env;
 		};
+		struct {
+			uint64_t type;
+			void *data;
+			buildin_func_t func;
+		} custom;
 	};
 };
 
@@ -68,6 +73,7 @@ struct env_s {
 #define T_LAMBDA 13
 #define T_ENV 14
 
+#define T_CUSTOM 20
 
 //
 // Functions
@@ -88,6 +94,7 @@ atom_t* pair_atom_alloc(atom_t *first, atom_t *rest);
 atom_t* buildin_atom_alloc(buildin_func_t func);
 atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env);
 atom_t* env_atom_alloc(env_t *env);
+atom_t* custom_atom_alloc(uint64_t type, void *data, buildin_func_t func);
 
 // Environement functions
 env_t* env_alloc(env_t *parent);
