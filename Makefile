@@ -2,8 +2,8 @@ GCC_ARGS = -Wall -std=gnu99 -g
 OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o
 LINKER_ARGS = -ldl
 
-run: tests repl
-	./tests
+run: tests/*.c repl
+	cd tests; make tests
 	./repl
 
 # Main programs
