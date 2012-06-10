@@ -13,7 +13,7 @@ typedef struct env_s env_t;
 typedef atom_t* (*buildin_func_t)(atom_t *args, env_t *env);
 
 struct atom_s {
-	uint8_t type;
+	int64_t type;
 	union {
 		int64_t num;
 		char *sym;
