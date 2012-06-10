@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include "memory.h"
 #include "reader.h"
@@ -60,7 +61,7 @@ int interprete_files(env_t *env, int number_of_files, char **files){
 	for(int i = 0; i < number_of_files; i++){
 		int fd = open(files[i], O_RDONLY);
 		if (fd == -1){
-			fprintf(stderr, "Failed to run file %s: %s\n", files[i], sys_errlist[errno]);
+			fprintf(stderr, "Failed to run file %s: %s\n", files[i], strerror(errno));
 			continue;
 		}
 		
