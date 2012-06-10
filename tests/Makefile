@@ -8,6 +8,10 @@ tests: eval_test printer_test reader_test logger_test scanner_test output_stream
 	./printer_test
 	./eval_test
 
+bytecode_generator_test: bytecode_generator_test.c ../bytecode_generator.h ../bytecode_generator.c test_utils.o
+	cd ..; make bytecode_generator.o
+	gcc $(GCC_ARGS) bytecode_generator_test.c test_utils.o ../bytecode_generator.o -o bytecode_generator_test
+
 custom_atom_test: custom_atom_test.c ../eval.h ../eval.c test_utils.o
 	cd ..; make eval.o printer.o reader.o buildins.o
 	gcc $(GCC_ARGS) custom_atom_test.c test_utils.o ../*.o -ldl -o custom_atom_test

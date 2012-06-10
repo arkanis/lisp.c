@@ -40,6 +40,10 @@ output_stream.o: output_stream.h output_stream.c
 	gcc $(GCC_ARGS) -c output_stream.c
 
 
+bytecode_generator.o: bytecode_generator.c bytecode_generator.h
+	gcc $(GCC_ARGS) -c bytecode_generator.c
+
+
 mod_hello: mod_hello.c
 	gcc $(GCC_ARGS) -c -fPIC mod_hello.c
 	gcc $(GCC_ARGS) -shared mod_hello.o -o mod_hello.so
