@@ -1,12 +1,14 @@
 GCC_ARGS = -Wall -std=gnu99 -g
 
-tests: eval_test printer_test reader_test logger_test scanner_test output_stream_test
+tests: eval_test printer_test reader_test logger_test scanner_test output_stream_test bytecode_generator_test custom_atom_test
 	./output_stream_test
 	./logger_test
 	./scanner_test
 	./reader_test
 	./printer_test
 	./eval_test
+	./custom_atom_test
+	./bytecode_generator_test
 
 bytecode_generator_test: bytecode_generator_test.c ../bytecode_generator.h ../bytecode_generator.c test_utils.o
 	cd ..; make bytecode_generator.o
@@ -16,7 +18,7 @@ custom_atom_test: custom_atom_test.c ../eval.h ../eval.c test_utils.o
 	cd ..; make eval.o printer.o reader.o buildins.o
 	gcc $(GCC_ARGS) custom_atom_test.c test_utils.o ../*.o -ldl -o custom_atom_test
 
-eval_test: eval_test.c ../eval.h ../eval.c test_utils.o
+eval_test: eval_test.c ../eval.h ../eval.c ../buildins.c test_utils.o
 	cd ..; make eval.o printer.o reader.o buildins.o
 	gcc $(GCC_ARGS) eval_test.c test_utils.o ../*.o -ldl -o eval_test
 

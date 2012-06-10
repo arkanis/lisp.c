@@ -5,21 +5,24 @@
 #include "eval.h"
 #include "logger.h"
 
+//
+// Language buildins
+//
+
 atom_t* buildin_define(atom_t *args, env_t *env){
+	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
+		return warn("define requires two arguments and the first one has to be a symbol"), nil_atom();
+	
 	atom_t *name_atom = args->first;
-	atom_t *value_atom = args->rest->first;
-	
-	if (name_atom->type != T_SYM) {
-		warn("define expects the first argument to be a symbol");
-		return nil_atom();
-	}
-	
-	atom_t *evaled_value = eval_atom(value_atom, env);
-	env_set(env, name_atom->sym, evaled_value);
-	return evaled_value;
+	atom_t *value_atom = eval_atom(args->rest->first, env);
+	env_set(env, name_atom->sym, value_atom);
+	return value_atom;
 }
 
 atom_t* buildin_if(atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL)
+		return warn("if requires exactly tree arguments"), nil_atom();
+	
 	atom_t *cond = eval_atom(args->first, env);
 	if (cond->type == T_TRUE)
 		return eval_atom(args->rest->first, env);
@@ -27,12 +30,51 @@ atom_t* buildin_if(atom_t *args, env_t *env){
 		return eval_atom(args->rest->rest->first, env);
 }
 
+atom_t* buildin_quote(atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL)
+		return warn("quote takes exactly one argument"), nil_atom();
+	return args->first;
+}
+
 atom_t* buildin_lambda(atom_t *args, env_t *env){
+	if (args->first->type != T_PAIR || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
+		return warn("lambda needs exactly two arguments (arg list and body)"), nil_atom();
 	return lambda_atom_alloc(args->first, args->rest->first, env);
 }
 
-atom_t* buildin_quote(atom_t *args, env_t *env){
-	return args->first;
+atom_t* buildin_begin(atom_t *args, env_t *env){
+	atom_t *result = nil_atom();
+	for(atom_t *pair = args; pair->type == T_PAIR; pair = pair->rest)
+		result = eval_atom(pair->first, env);
+	return result;
+}
+
+atom_t* buildin_cons(atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
+		return warn("cons needs exactly two arguments to build a pair"), nil_atom();
+	return pair_atom_alloc(eval_atom(args->first, env), eval_atom(args->rest->first, env));
+}
+
+atom_t* buildin_first(atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL)
+		return warn("first requires exactly one argument"), nil_atom();	
+	
+	atom_t *pair_atom = eval_atom(args->first, env);
+	if (pair_atom->type != T_PAIR)
+		return warn("first: the argument have to eval to a pair"), nil_atom();
+	
+	return pair_atom->first;
+}
+
+atom_t* buildin_rest(atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL)
+		return warn("rest requires exactly one argument"), nil_atom();	
+	
+	atom_t *pair_atom = eval_atom(args->first, env);
+	if (pair_atom->type != T_PAIR)
+		return warn("rest: the argument have to eval to a pair"), nil_atom();
+	
+	return pair_atom->rest;
 }
 
 
@@ -196,13 +238,7 @@ atom_t* buildin_env_set(atom_t *args, env_t *env){
 }
 
 
-/*
 
-cons
-first
-rest
-
-*/
 
 atom_t* buildin_print(atom_t *args, env_t *env){
 	atom_t *atom = eval_atom(args->first, env);
@@ -232,14 +268,20 @@ atom_t* buildin_print(atom_t *args, env_t *env){
 
 void register_buildins_in(env_t *env){
 	env_set(env, "define", buildin_atom_alloc(buildin_define));
+	env_set(env, "if", buildin_atom_alloc(buildin_if));
 	env_set(env, "quote", buildin_atom_alloc(buildin_quote));
+	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda));
+	env_set(env, "begin", buildin_atom_alloc(buildin_begin));
+	env_set(env, "cons", buildin_atom_alloc(buildin_cons));
+	env_set(env, "first", buildin_atom_alloc(buildin_first));
+	env_set(env, "rest", buildin_atom_alloc(buildin_rest));
+	
 	env_set(env, "+", buildin_atom_alloc(buildin_plus));
 	env_set(env, "-", buildin_atom_alloc(buildin_minus));
-	env_set(env, "if", buildin_atom_alloc(buildin_if));
-	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda));
 	env_set(env, "*", buildin_atom_alloc(buildin_multiply));
 	env_set(env, "/", buildin_atom_alloc(buildin_divide));
 	env_set(env, "=", buildin_atom_alloc(buildin_eqal));
+	
 	env_set(env, "mod_load", buildin_atom_alloc(buildin_mod_load));
 	env_set(env, "env_self", buildin_atom_alloc(buildin_env_self));
 	env_set(env, "env_new", buildin_atom_alloc(buildin_env_new));

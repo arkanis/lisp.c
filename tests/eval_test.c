@@ -71,6 +71,49 @@ void test_eval_lowlevel(){
 	// Not worth the time right now as it is covered by higher level tests
 }
 
+char *language_buildin_samples[] = {
+	"(define var 1234)", "1234",
+	"var", "1234",
+	
+	"(if true 1 2)", "1",
+	"(if false 1 2)", "2",
+	
+	"(define true_case_evaled false)", "false",
+	"(define false_case_evaled false)", "false",
+	"(if true (define true_case_evaled true) (define false_case_evaled true))", "true",
+	"true_case_evaled", "true",
+	"false_case_evaled", "false",
+	
+	"(define true_case_evaled false)", "false",
+	"(define false_case_evaled false)", "false",
+	"(if false (define true_case_evaled true) (define false_case_evaled true))", "true",
+	"true_case_evaled", "false",
+	"false_case_evaled", "true",
+	
+	"(define foo (lambda (a b) b))", "(lambda (a b) b)",
+	"(foo 1 2)", "2",
+	
+	"(quote (foo 1 2))", "(foo 1 2)",
+	"'(foo 1 2)", "(foo 1 2)",
+	
+	"(define expression_evaled false)", "false",
+	"(begin 1 (define expression_evaled true) 3)", "3",
+	"expression_evaled", "true",
+	
+	"(cons 1 2)", "(1 . 2)",
+	"(cons 1 (cons 2 nil))", "(1 2)",
+	"(first (cons 1 2))", "1",
+	"(rest (cons 1 2))", "2",
+	"(define pair (cons 1 2))", "(1 . 2)",
+	"(first pair)", "1",
+	"(rest pair)", "2",
+	
+	// EOF evals to nil
+	"", "nil",
+	
+	NULL
+};
+
 void test_eval_with_buildins(){
 	atom_t *atom = NULL;
 	output_stream_t os = os_new_capture(4096);
@@ -78,7 +121,7 @@ void test_eval_with_buildins(){
 	env_t *env = env_alloc(NULL);
 	register_buildins_in(env);
 	
-	char *samples[] = {
+	char *other_samples[] = {
 		"nil", "nil",
 		"true", "true",
 		"false", "false",
@@ -95,41 +138,25 @@ void test_eval_with_buildins(){
 		"(= 1 1)", "true",
 		"(= 1 2)", "false",
 		
-		"(if (= 1 1) 1 2)", "1",
-		
-		"(define true_case_evaled false)", "false",
-		"(define false_case_evaled false)", "false",
-		"(if true (define true_case_evaled true) (define false_case_evaled true))", "true",
-		"true_case_evaled", "true",
-		"false_case_evaled", "false",
-		
-		"(define true_case_evaled false)", "false",
-		"(define false_case_evaled false)", "false",
-		"(if false (define true_case_evaled true) (define false_case_evaled true))", "true",
-		"true_case_evaled", "false",
-		"false_case_evaled", "true",
-		
-		"(define pl (lambda (a b) (+ a b)))", "(lambda (a b) (+ a b))",
-		"(pl 1 2)", "3",
-		
-		"'(+ 1 2)", "(+ 1 2)",
-		
-		// EOF evals to nil
-		"", "nil",
-		
 		NULL
 	};
 	
-	for(size_t i = 0; samples[i] != NULL; i += 2){
-		scanner_t scan = scan_open_string(samples[i]);
-		atom = read_atom(&scan);
-		scan_close(&scan);
+	char **sample_set_list[] = { language_buildin_samples, other_samples, NULL };
+	for(size_t i = 0; sample_set_list[i] != NULL; i++){
+		char **samples = sample_set_list[i];
 		
-		atom = eval_atom(atom, env);
+		for(size_t j = 0; samples[j] != NULL; j += 2){
+			scanner_t scan = scan_open_string(samples[j]);
+			atom = read_atom(&scan);
+			scan_close(&scan);
+			
+			atom = eval_atom(atom, env);
+			
+			print_atom(&os, atom);
+			test(strcmp(os.buffer_ptr, samples[j+1]) == 0, "unexpected eval output.\ninput: %s\noutput: %s\nexpected: %s", samples[j], os.buffer_ptr, samples[j+1]);
+			os_clear(&os);
+		}
 		
-		print_atom(&os, atom);
-		test(strcmp(os.buffer_ptr, samples[i+1]) == 0, "unexpected eval output.\ninput: %s\noutput: %s\nexpected: %s", samples[i], os.buffer_ptr, samples[i+1]);
-		os_clear(&os);
 	}
 	
 	os_destroy(&os);
