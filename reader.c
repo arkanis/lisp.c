@@ -51,6 +51,11 @@ atom_t* read_list(scanner_t *scan){
 	atom_t* current_atom = list_start_atom;
 	
 	scan_one_of(scan, '(');
+	// Check if we got an empty list
+	c = scan_while_func(scan, NULL, isspace);
+	if (c == ')')
+		return nil_atom();
+	
 	while (true) {
 		current_atom->first = read_atom(scan);
 		

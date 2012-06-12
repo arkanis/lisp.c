@@ -40,6 +40,9 @@ void test_reader(){
 	atom = read_test_code("false");
 	test(atom->type == T_FALSE && atom == false_atom(), "got type: %d, atom: %p, false atom: %p", atom->type, atom, false_atom());
 	
+	atom = read_test_code("()");
+	test(atom->type == T_NIL, "failed to read an empty list, got type %d", atom->type);
+	
 	atom = read_test_code("(1)");
 	test(atom->type == T_PAIR
 		&& atom->first->type == T_NUM && atom->first->num == 1
