@@ -1,6 +1,16 @@
 #ifndef _BYTECODE_H
 #define _BYTECODE_H
 
+
+#include <stdint.h>
+#include <sys/types.h>
+
+typedef struct {
+	size_t length;
+	int64_t *code;
+} bytecode_t;
+
+
 #define BC_PUSH_NIL		1
 #define BC_PUSH_TRUE		2
 #define BC_PUSH_FALSE		3
@@ -17,5 +27,6 @@
 
 #define BC_JUMP			11
 #define BC_JUMP_IF_FALSE	12
+
 
 #endif

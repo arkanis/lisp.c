@@ -79,6 +79,13 @@ atom_t* lambda_atom_alloc(atom_t *args, atom_t *body, env_t *env){
 	return atom;
 }
 
+atom_t* compiled_lambda_atom_alloc(bytecode_t bytecode, atom_list_t literal_table){
+	atom_t *atom = atom_alloc(T_COMPILED_LAMBDA);
+	atom->bytecode = bytecode;
+	atom->literal_table = literal_table;
+	return atom;
+}
+
 atom_t* env_atom_alloc(env_t *env){
 	atom_t *atom = atom_alloc(T_ENV);
 	atom->env = env;

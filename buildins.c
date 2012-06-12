@@ -37,7 +37,7 @@ atom_t* buildin_quote(atom_t *args, env_t *env){
 }
 
 atom_t* buildin_lambda(atom_t *args, env_t *env){
-	if (args->first->type != T_PAIR || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
 		return warn("lambda needs exactly two arguments (arg list and body)"), nil_atom();
 	return lambda_atom_alloc(args->first, args->rest->first, env);
 }

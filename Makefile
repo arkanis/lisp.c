@@ -40,8 +40,12 @@ output_stream.o: output_stream.h output_stream.c
 	gcc $(GCC_ARGS) -c output_stream.c
 
 
+bytecode_compiler.o: bytecode_compiler.c bytecode_compiler.h memory.h bytecode_generator.o
+	gcc $(GCC_ARGS) -c bytecode_compiler.c
+
 bytecode_generator.o: bytecode_generator.c bytecode_generator.h
 	gcc $(GCC_ARGS) -c bytecode_generator.c
+
 
 
 mod_hello: mod_hello.c

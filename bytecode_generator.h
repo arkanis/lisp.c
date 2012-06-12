@@ -4,11 +4,6 @@
 #include <stdint.h>
 #include "bytecode.h"
 
-typedef struct {
-	size_t length;
-	int64_t *code;
-} bytecode_t;
-
 bytecode_t bcg_init();
 void bcg_destroy(bytecode_t *bc);
 void bcg_gen(bytecode_t *bc, int instruction);

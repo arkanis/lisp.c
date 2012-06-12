@@ -3,6 +3,7 @@
 #include "test_utils.h"
 #include "../bytecode_generator.h"
 
+
 void test_generation(){
 	bytecode_t bc = bcg_init();
 	
