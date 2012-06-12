@@ -43,6 +43,12 @@ void test_reader(){
 	atom = read_test_code("()");
 	test(atom->type == T_NIL, "failed to read an empty list, got type %d", atom->type);
 	
+	atom = read_test_code("(() ())");
+	test(atom->type == T_PAIR && atom->first->type == T_NIL
+		&& atom->rest->type == T_PAIR && atom->rest->first->type == T_NIL
+		&& atom->rest->rest->type == T_NIL
+	, "failed to read two empty lists");
+	
 	atom = read_test_code("(1)");
 	test(atom->type == T_PAIR
 		&& atom->first->type == T_NUM && atom->first->num == 1
