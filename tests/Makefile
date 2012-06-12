@@ -1,6 +1,6 @@
 GCC_ARGS = -Wall -std=gnu99 -g
 
-tests: eval_test printer_test reader_test logger_test scanner_test output_stream_test bytecode_generator_test custom_atom_test
+tests: eval_test printer_test reader_test logger_test scanner_test output_stream_test bytecode_generator_test custom_atom_test bytecode_compiler_test
 	./output_stream_test
 	./logger_test
 	./scanner_test
