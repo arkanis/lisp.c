@@ -13,7 +13,7 @@ typedef struct env_s env_t;
 
 typedef struct {
 	size_t length;
-	atom_t *atoms;
+	atom_t **atoms;
 } atom_list_t;
 
 typedef atom_t* (*buildin_func_t)(atom_t *args, env_t *env);

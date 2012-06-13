@@ -10,6 +10,10 @@ typedef struct {
 	int64_t *code;
 } bytecode_t;
 
+// This is not an actual bytecode but assumed to never occur in a bytecode array.
+// It is used by the tests to terminate the assumed bytecodes. Just make sure there
+// is no instruction with that code and an argument is unlikely to contain that value.
+#define BC_NULL			INT64_MIN
 
 #define BC_PUSH_NIL		1
 #define BC_PUSH_TRUE		2
@@ -27,6 +31,5 @@ typedef struct {
 
 #define BC_JUMP			11
 #define BC_JUMP_IF_FALSE	12
-
 
 #endif

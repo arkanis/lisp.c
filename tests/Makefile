@@ -11,7 +11,7 @@ tests: eval_test printer_test reader_test logger_test scanner_test output_stream
 	./bytecode_generator_test
 	./bytecode_compiler_test
 
-bytecode_compiler_test: bytecode_compiler_test.c ../bytecode_compiler.h ../bytecode_compiler.c test_utils.o
+bytecode_compiler_test: bytecode_compiler_test.c ../bytecode_compiler.h ../bytecode.h ../bytecode_compiler.c test_utils.o
 	cd ..; make bytecode_compiler.o memory.o reader.o eval.o
 	gcc $(GCC_ARGS) bytecode_compiler_test.c test_utils.o ../*.o -ldl -o bytecode_compiler_test
 

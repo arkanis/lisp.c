@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <string.h>
 
 #include "test_utils.h"
 #include "../memory.h"
@@ -8,12 +9,13 @@
 
 
 void test_compiler(){
+	atom_t *atom = NULL;
 	env_t *env = env_alloc(NULL);
 	register_compiler_buildins_in(env);
 	
-	void test_sample(char *body, int *expected_bytecode){
+	atom_t *test_sample(char *body, int64_t *expected_bytecode){
 		scanner_t scan = scan_open_string(body);
-		atom_t *atom = read_atom(&scan);
+		atom = read_atom(&scan);
 		scan_close(&scan);
 		
 		atom_t *compiled_lambda = eval_atom(atom, env);
@@ -21,7 +23,7 @@ void test_compiler(){
 			body, compiled_lambda->type);
 		
 		size_t expected_bc_length = 0;
-		while(expected_bytecode[expected_bc_length] != 0)
+		while(expected_bytecode[expected_bc_length] != BC_NULL)
 			expected_bc_length++;
 		
 		test(compiled_lambda->bytecode.length == expected_bc_length, "sample: %s, expected a bytecode length of %d but got %d",
@@ -30,12 +32,19 @@ void test_compiler(){
 			test(compiled_lambda->bytecode.code[i] == expected_bytecode[i], "sample: %s, got wrong bytecode at index %d, expected %d but got %d",
 				body, i, expected_bytecode[i], compiled_lambda->bytecode.code[i]);
 		}
+		
+		return compiled_lambda;
 	}
 	
-	test_sample("(lambda_compile () nil)", (int[]){1, 0});
-	test_sample("(lambda_compile () true)", (int[]){2, 0});
-	test_sample("(lambda_compile () false)", (int[]){3, 0});
-	test_sample("(lambda_compile () 42)", (int[]){4, 42, 0});
+	test_sample("(lambda_compile () nil)", (int64_t[]){BC_PUSH_NIL, BC_RETURN, BC_NULL});
+	test_sample("(lambda_compile () true)", (int64_t[]){BC_PUSH_TRUE, BC_RETURN, BC_NULL});
+	test_sample("(lambda_compile () false)", (int64_t[]){BC_PUSH_FALSE, BC_RETURN, BC_NULL});
+	test_sample("(lambda_compile () 42)", (int64_t[]){BC_PUSH_NUM, 42, BC_RETURN, BC_NULL});
+	atom = test_sample("(lambda_compile () \"foo\")", (int64_t[]){BC_PUSH_LITERAL, 0, BC_RETURN, BC_NULL});
+	test(atom->literal_table.atoms[0]->type == T_STR, "...");
+	test(strcmp(atom->literal_table.atoms[0]->str, "foo") == 0, "...");
+	test_sample("(lambda_compile (a) a)", (int64_t[]){BC_PUSH_ARG, 0, BC_RETURN, BC_NULL});
+	test_sample("(lambda_compile (a b c) c)", (int64_t[]){BC_PUSH_ARG, 2, BC_RETURN, BC_NULL});
 }
 
 
