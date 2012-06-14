@@ -28,7 +28,7 @@ atom_t* buildin_lambda_compile(atom_t *args, env_t *env){
 	atom_t *cl_atom = compiled_lambda_atom_alloc(bcg_init(), (atom_list_t){0, NULL});
 	
 	compile_statement(cl_atom, args_atom, body_atom);
-	bcg_gen(&cl_atom->bytecode, BC_RETURN);
+	bcg_gen_op(&cl_atom->bytecode, BC_RETURN);
 	
 	return cl_atom;
 }
@@ -36,26 +36,31 @@ atom_t* buildin_lambda_compile(atom_t *args, env_t *env){
 void compile_statement(atom_t *cl_atom, atom_t *lambda_args, atom_t *ast){
 	switch (ast->type) {
 		case T_NIL:
-			bcg_gen(&cl_atom->bytecode, BC_PUSH_NIL);
+			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_NIL);
 			break;
 		case T_TRUE:
-			bcg_gen(&cl_atom->bytecode, BC_PUSH_TRUE);
+			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_TRUE);
 			break;
 		case T_FALSE:
-			bcg_gen(&cl_atom->bytecode, BC_PUSH_FALSE);
+			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_FALSE);
 			break;
 		case T_NUM:
-			bcg_gen_with_arg(&cl_atom->bytecode, BC_PUSH_NUM, ast->num);
+			if (ast->num > INT32_MAX || ast->num < INT32_MIN) {
+				size_t idx = add_atom_to_literal_table(cl_atom, ast);
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx});
+			} else {
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_NUM, .num = ast->num});
+			}
 			break;
 		case T_STR: {
 			size_t idx = add_atom_to_literal_table(cl_atom, ast);
-			bcg_gen_with_arg(&cl_atom->bytecode, BC_PUSH_LITERAL, idx);
+			bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx});
 			} break;
 		case T_SYM: {
 			ssize_t idx;
 			if ( (idx = symbol_in_arg_list(lambda_args, ast)) != -1 ) {
 				// symbol is in argument list, generate a push-arg instruction
-				bcg_gen_with_arg(&cl_atom->bytecode, BC_PUSH_ARG, idx);
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_ARG, .index = idx});
 			} else {
 				warn("TODO: handle variable access");
 			}

@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #define test(expr, ...) test_func( (expr), __FILE__, __LINE__, #expr, __VA_ARGS__)
-void test_func(bool expr, char *file, int line, const char *code, const char *message, ...);
+bool test_func(bool expr, char *file, int line, const char *code, const char *message, ...);
 extern int tests_passed, tests_failed;
 int show_test_report();
 

@@ -12,15 +12,15 @@ void bcg_destroy(bytecode_t *bc){
 	bc->length = 0;
 }
 
-size_t bcg_gen(bytecode_t *bc, uint8_t op, uint16_t offset, uint32_t index){
+size_t bcg_gen(bytecode_t *bc, instruction_t instruction){
 	bc->length++;
 	bc->code = realloc(bc->code, bc->length * sizeof(bc->code[0]));
-	bc->code[bc->length-1] = (instruction_t){op, 0, offset, index};
+	bc->code[bc->length-1] = instruction;
 	return bc->length-1;
 }
 
 size_t bcg_gen_op(bytecode_t *bc, uint8_t op){
-	return bcg_gen(bc, op, 0, 0);
+	return bcg_gen(bc, (instruction_t){op});
 }
 
 
@@ -35,5 +35,5 @@ size_t bcg_gen_op(bytecode_t *bc, uint8_t op){
  */
 void bcg_backpatch_target_in(bytecode_t *bc, size_t index_of_jump_instruction){
 	size_t target_index = bc->length;
-	bc->code[index_of_jump_instruction].index = target_index - index_of_jump_instruction - 1;
+	bc->code[index_of_jump_instruction].jump_offset = target_index - index_of_jump_instruction - 1;
 }

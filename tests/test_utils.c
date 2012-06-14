@@ -9,12 +9,13 @@
 int tests_passed, tests_failed;
 bool last_test_failed = false;
 
-void test_func(bool expr, char *file, int line, const char *code, const char *message, ...){
+bool test_func(bool expr, char *file, int line, const char *code, const char *message, ...){
 	if (expr) {
 		tests_passed++;
 		last_test_failed = false;
 		fprintf(stderr, ".");
 		fflush(stderr);
+		return true;
 	} else {
 		tests_failed++;
 		if (!last_test_failed)
@@ -28,6 +29,7 @@ void test_func(bool expr, char *file, int line, const char *code, const char *me
 		va_end(args);
 		
 		fprintf(stderr, "\n");
+		return false;
 	}
 }
 

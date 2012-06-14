@@ -63,8 +63,8 @@ struct env_s {
 // Atom type constants
 //
 
-// Meant for atoms that are not really ready yet (not used right now)
-#define T_UNINITIALIZED 0
+// Not meant to be used in actual atoms. It is supposed to be used as a list terminator for atom lists.
+#define T_NULL 0
 
 // Atoms that eval to themselfs. Albeit some of these are singletons the type should be used
 // for comparisons.
