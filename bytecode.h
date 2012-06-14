@@ -6,8 +6,15 @@
 #include <sys/types.h>
 
 typedef struct {
+	uint8_t op;
+	uint8_t padding;
+	uint16_t offset;
+	uint32_t index;
+} instruction_t;
+
+typedef struct {
 	size_t length;
-	int64_t *code;
+	instruction_t *code;
 } bytecode_t;
 
 // This is not an actual bytecode but assumed to never occur in a bytecode array.

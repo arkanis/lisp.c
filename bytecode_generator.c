@@ -12,30 +12,28 @@ void bcg_destroy(bytecode_t *bc){
 	bc->length = 0;
 }
 
-void bcg_gen(bytecode_t *bc, int instruction){
+size_t bcg_gen(bytecode_t *bc, uint8_t op, uint16_t offset, uint32_t index){
 	bc->length++;
 	bc->code = realloc(bc->code, bc->length * sizeof(bc->code[0]));
-	bc->code[bc->length-1] = instruction;
-}
-
-size_t bcg_gen_with_arg(bytecode_t *bc, int instruction, int arg){
-	bc->length += 2;
-	bc->code = realloc(bc->code, bc->length * sizeof(bc->code[0]));
-	bc->code[bc->length-2] = instruction;
-	bc->code[bc->length-1] = arg;
+	bc->code[bc->length-1] = (instruction_t){op, 0, offset, index};
 	return bc->length-1;
 }
 
+size_t bcg_gen_op(bytecode_t *bc, uint8_t op){
+	return bcg_gen(bc, op, 0, 0);
+}
+
+
 /**
- * Sets the value of the jump offset at the bytecode index `jump_offset_index` (this is
- * the value returned by `bcg_gen_with_arg()` when generating a jump instruction).
+ * Sets the value of the jump offset at the bytecode index `index_of_jump_instruction`
+ * (this is the value returned by `bcg_gen()` when generating a jump instruction).
  * 
- * The offset is calculated as the difference between the jump offset index (not the
- * jump instruction!) and the index of the instruction generated next. In effect this is
- * the number of words between the jump offset and its target. After this patch the
- * jump will jump to the instruction generated after this call.
+ * The offset is calculated as the difference between the jump instruction and the
+ * index of the instruction generated next. In effect this is the number of words between
+ * the jump offset and its target. After this patch the jump will jump to the instruction
+ * generated after this call.
  */
-void bcg_backpatch_target_in(bytecode_t *bc, size_t jump_offset_index){
+void bcg_backpatch_target_in(bytecode_t *bc, size_t index_of_jump_instruction){
 	size_t target_index = bc->length;
-	bc->code[jump_offset_index] = target_index - jump_offset_index - 1;
+	bc->code[index_of_jump_instruction].index = target_index - index_of_jump_instruction - 1;
 }
