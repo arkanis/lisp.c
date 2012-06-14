@@ -17,7 +17,7 @@ bytecode_compiler_test: bytecode_compiler_test.c ../bytecode_compiler.h ../bytec
 
 bytecode_generator_test: bytecode_generator_test.c ../bytecode_generator.h ../bytecode_generator.c test_utils.o test_bytecode_utils.o
 	cd ..; make bytecode_generator.o
-	gcc $(GCC_ARGS) bytecode_generator_test.c test_utils.o test_bytecode_utils.o ../*.o -o bytecode_generator_test
+	gcc $(GCC_ARGS) bytecode_generator_test.c test_utils.o test_bytecode_utils.o ../*.o -ldl -o bytecode_generator_test
 
 custom_atom_test: custom_atom_test.c ../eval.h ../eval.c test_utils.o
 	cd ..; make eval.o printer.o reader.o buildins.o
