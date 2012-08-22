@@ -1,6 +1,10 @@
 #ifndef _LOGGER_H
 #define _LOGGER_H
 
+/**
+ * A simple logger which prefixes each message with the source code location.
+ */
+
 #include "output_stream.h"
 
 #define LOG_INFO 1

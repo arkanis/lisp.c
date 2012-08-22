@@ -3,6 +3,7 @@
 
 #include "buildins.h"
 #include "eval.h"
+#include "bytecode_compiler.h"
 #include "logger.h"
 
 //
@@ -36,18 +37,45 @@ atom_t* buildin_quote(atom_t *args, env_t *env){
 	return args->first;
 }
 
-atom_t* buildin_lambda(atom_t *args, env_t *env){
-	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
-		return warn("lambda needs exactly two arguments (arg list and body)"), nil_atom();
-	return lambda_atom_alloc(args->first, args->rest->first, env);
-}
-
 atom_t* buildin_begin(atom_t *args, env_t *env){
 	atom_t *result = nil_atom();
 	for(atom_t *pair = args; pair->type == T_PAIR; pair = pair->rest)
 		result = eval_atom(pair->first, env);
 	return result;
 }
+
+atom_t* buildin_lambda(atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR)
+		return warn("lambda needs at least two arguments (arg list and body)"), nil_atom();
+	atom_t *arg_names = args->first;
+	atom_t *body = args->rest;
+	
+	if (body->rest->type == T_NIL) {
+		// If we only have one expression in the body discard the trailing nil from the argument list.
+		// A lambday can only contain one expression so there is no need for a terminator nil.
+		body = body->first;
+	} else {
+		// If we got multiple expressions so wrap them into a begin() call. The terminator nil from the
+		// argument list is reused as the terminator nil of the arguments to begin().
+		body = pair_atom_alloc(sym_atom_alloc("begin"), body);
+	}
+	
+	// Only try to compile the lambda if `__compile_lambdas` is set to true
+	if ( env_get(env, "__compile_lambdas") == true_atom() ){
+		// If bcc_compile_to_lambda() returns NULL the compilation failed and we will use a normal AST
+		// based lambda instead
+		atom_t *compiled_lambda = bcc_compile_to_lambda(arg_names, body, env);
+		if (compiled_lambda != NULL)
+			return compiled_lambda;
+	}
+	
+	return lambda_atom_alloc(arg_names, body, env);
+}
+
+
+//
+// Pair handling
+//
 
 atom_t* buildin_cons(atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
@@ -267,25 +295,25 @@ atom_t* buildin_print(atom_t *args, env_t *env){
 }
 
 void register_buildins_in(env_t *env){
-	env_set(env, "define", buildin_atom_alloc(buildin_define));
-	env_set(env, "if", buildin_atom_alloc(buildin_if));
-	env_set(env, "quote", buildin_atom_alloc(buildin_quote));
-	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda));
-	env_set(env, "begin", buildin_atom_alloc(buildin_begin));
-	env_set(env, "cons", buildin_atom_alloc(buildin_cons));
-	env_set(env, "first", buildin_atom_alloc(buildin_first));
-	env_set(env, "rest", buildin_atom_alloc(buildin_rest));
+	env_set(env, "define", buildin_atom_alloc(buildin_define, NULL));
+	env_set(env, "if", buildin_atom_alloc(buildin_if, NULL));
+	env_set(env, "quote", buildin_atom_alloc(buildin_quote, NULL));
+	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, NULL));
+	env_set(env, "begin", buildin_atom_alloc(buildin_begin, NULL));
+	env_set(env, "cons", buildin_atom_alloc(buildin_cons, NULL));
+	env_set(env, "first", buildin_atom_alloc(buildin_first, NULL));
+	env_set(env, "rest", buildin_atom_alloc(buildin_rest, NULL));
 	
-	env_set(env, "+", buildin_atom_alloc(buildin_plus));
-	env_set(env, "-", buildin_atom_alloc(buildin_minus));
-	env_set(env, "*", buildin_atom_alloc(buildin_multiply));
-	env_set(env, "/", buildin_atom_alloc(buildin_divide));
-	env_set(env, "=", buildin_atom_alloc(buildin_eqal));
+	env_set(env, "+", buildin_atom_alloc(buildin_plus, NULL));
+	env_set(env, "-", buildin_atom_alloc(buildin_minus, NULL));
+	env_set(env, "*", buildin_atom_alloc(buildin_multiply, NULL));
+	env_set(env, "/", buildin_atom_alloc(buildin_divide, NULL));
+	env_set(env, "=", buildin_atom_alloc(buildin_eqal, NULL));
 	
-	env_set(env, "mod_load", buildin_atom_alloc(buildin_mod_load));
-	env_set(env, "env_self", buildin_atom_alloc(buildin_env_self));
-	env_set(env, "env_new", buildin_atom_alloc(buildin_env_new));
-	env_set(env, "env_get", buildin_atom_alloc(buildin_env_get));
-	env_set(env, "env_set", buildin_atom_alloc(buildin_env_set));
-	env_set(env, "print", buildin_atom_alloc(buildin_print));
+	env_set(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
+	env_set(env, "env_self", buildin_atom_alloc(buildin_env_self, NULL));
+	env_set(env, "env_new", buildin_atom_alloc(buildin_env_new, NULL));
+	env_set(env, "env_get", buildin_atom_alloc(buildin_env_get, NULL));
+	env_set(env, "env_set", buildin_atom_alloc(buildin_env_set, NULL));
+	env_set(env, "print", buildin_atom_alloc(buildin_print, NULL));
 }

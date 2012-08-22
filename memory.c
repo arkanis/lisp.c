@@ -65,9 +65,10 @@ atom_t* pair_atom_alloc(atom_t *first, atom_t *rest){
 	return atom;
 }
 
-atom_t* buildin_atom_alloc(buildin_func_t func){
+atom_t* buildin_atom_alloc(buildin_func_t func, compile_func_t compile_func){
 	atom_t *atom = atom_alloc(T_BUILDIN);
 	atom->func = func;
+	atom->compile_func = compile_func;
 	return atom;
 }
 

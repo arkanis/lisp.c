@@ -17,6 +17,7 @@ typedef struct {
 } atom_list_t;
 
 typedef atom_t* (*buildin_func_t)(atom_t *args, env_t *env);
+typedef atom_t* (*compile_func_t)();
 
 struct atom_s {
 	int64_t type;
@@ -29,6 +30,7 @@ struct atom_s {
 		};
 		struct {
 			buildin_func_t func;
+			compile_func_t compile_func;
 		};
 		struct {
 			atom_t *body;
@@ -102,7 +104,7 @@ atom_t* num_atom_alloc(int64_t value);
 atom_t* sym_atom_alloc(char *sym);
 atom_t* str_atom_alloc(char *str);
 atom_t* pair_atom_alloc(atom_t *first, atom_t *rest);
-atom_t* buildin_atom_alloc(buildin_func_t func);
+atom_t* buildin_atom_alloc(buildin_func_t func, compile_func_t compile_func);
 atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env);
 atom_t* compiled_lambda_atom_alloc(bytecode_t bytecode, atom_list_t literal_table);
 atom_t* env_atom_alloc(env_t *env);

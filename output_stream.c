@@ -3,6 +3,7 @@
 
 #include "output_stream.h"
 
+
 output_stream_t os_new(FILE *stdio_stream){
 	return (output_stream_t){
 		.stream = stdio_stream,

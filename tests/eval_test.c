@@ -61,7 +61,7 @@ void test_eval_lowlevel(){
 		return args->first;
 	}
 	
-	env_set(env, "test", buildin_atom_alloc(sample_buildin));
+	env_set(env, "test", buildin_atom_alloc(sample_buildin, NULL));
 	atom = pair_atom_alloc( sym_atom_alloc("test"), pair_atom_alloc(num_atom_alloc(1), nil_atom()) );
 	atom = eval_atom(atom, env);
 	test(sample_buildin_visited == true, "failed to execute buildin");
@@ -92,6 +92,8 @@ char *language_buildin_samples[] = {
 	
 	"(define foo (lambda (a b) b))", "(lambda (a b) b)",
 	"(foo 1 2)", "2",
+	"(define implicit_begin_foo (lambda (a b) a a b))", "(lambda (a b) (begin a a b))",
+	"(implicit_begin_foo 1 2)", "2",
 	
 	"(quote (foo 1 2))", "(foo 1 2)",
 	"'(foo 1 2)", "(foo 1 2)",

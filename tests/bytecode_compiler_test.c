@@ -7,13 +7,15 @@
 #include "../memory.h"
 #include "../reader.h"
 #include "../eval.h"
+#include "../buildins.h"
 #include "../bytecode_compiler.h"
 
 
 void test_compiler(){
 	atom_t *atom = NULL;
 	env_t *env = env_alloc(NULL);
-	register_compiler_buildins_in(env);
+	register_buildins_in(env);
+	env_set(env, "__compile_lambdas", true_atom());
 	
 	atom_t *test_sample(char *body, instruction_t *expected_bytecode){
 		scanner_t scan = scan_open_string(body);
@@ -36,39 +38,39 @@ void test_compiler(){
 		return compiled_lambda;
 	}
 	
-	test_sample("(lambda_compile () nil)", (instruction_t[]){
+	test_sample("(lambda () nil)", (instruction_t[]){
 		(instruction_t){BC_PUSH_NIL},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	test_sample("(lambda_compile () true)", (instruction_t[]){
+	test_sample("(lambda () true)", (instruction_t[]){
 		(instruction_t){BC_PUSH_TRUE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	test_sample("(lambda_compile () false)", (instruction_t[]){
+	test_sample("(lambda () false)", (instruction_t[]){
 		(instruction_t){BC_PUSH_FALSE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	test_sample("(lambda_compile () 42)", (instruction_t[]){
+	test_sample("(lambda () 42)", (instruction_t[]){
 		(instruction_t){BC_PUSH_NUM, .num = 42},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	atom = test_sample("(lambda_compile () \"foo\")", (instruction_t[]){
+	atom = test_sample("(lambda () \"foo\")", (instruction_t[]){
 		(instruction_t){BC_PUSH_LITERAL, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	test_atom(atom->literal_table.atoms[0], (atom_t){T_STR, .str = "foo"}, 0, "(lambda_compile () \"foo\")");
+	test_atom(atom->literal_table.atoms[0], (atom_t){T_STR, .str = "foo"}, 0, "(lambda () \"foo\")");
 	
-	test_sample("(lambda_compile (a) a)", (instruction_t[]){
+	test_sample("(lambda (a) a)", (instruction_t[]){
 		(instruction_t){BC_PUSH_ARG, .frame_offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
-	test_sample("(lambda_compile (a b c) c)", (instruction_t[]){
+	test_sample("(lambda (a b c) c)", (instruction_t[]){
 		(instruction_t){BC_PUSH_ARG, .frame_offset = 0, .index = 2},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
