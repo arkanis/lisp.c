@@ -3,7 +3,7 @@
 
 
 #include <stdint.h>
-#include <sys/types.h>
+#include <stddef.h>
 
 typedef struct {
 	uint8_t op;
@@ -52,6 +52,14 @@ typedef struct {
 #define BC_RETURN			10
 
 #define BC_JUMP			11
+// Pops the current value of the stack and checks if it is the false atom
 #define BC_JUMP_IF_FALSE	12
+
+#define BC_ADD			13
+#define BC_SUB			14
+#define BC_MUL			15
+#define BC_DIV			16
+
+#define BC_EQ				17
 
 #endif

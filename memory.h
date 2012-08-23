@@ -46,6 +46,11 @@ struct atom_s {
 			void *data;
 			buildin_func_t func;
 		} custom;
+		struct {
+			size_t fp_index;
+			size_t ip_index;
+			size_t arg_count;
+		} interpreter_state;
 	};
 };
 
@@ -85,6 +90,7 @@ struct env_s {
 #define T_LAMBDA 13
 #define T_COMPILED_LAMBDA 14
 #define T_ENV 15
+#define T_INTERPRETER_STATE 16
 
 #define T_CUSTOM 20
 
@@ -109,6 +115,8 @@ atom_t* lambda_atom_alloc(atom_t *body, atom_t *args, env_t *env);
 atom_t* compiled_lambda_atom_alloc(bytecode_t bytecode, atom_list_t literal_table);
 atom_t* env_atom_alloc(env_t *env);
 atom_t* custom_atom_alloc(uint64_t type, void *data, buildin_func_t func);
+atom_t* interpreter_state_atom_alloc(size_t fp_index, size_t ip_index, size_t arg_count);
+
 
 // Environement functions
 env_t* env_alloc(env_t *parent);

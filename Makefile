@@ -14,47 +14,46 @@ repl: repl.c $(OBJ_FILES)
 	gcc $(GCC_ARGS) -rdynamic repl.c $(OBJ_FILES) $(LINKER_ARGS) -o repl
 
 
-# Indiviual components
-buildins.o: buildins.h buildins.c memory.o
-	gcc $(GCC_ARGS) -c buildins.c
-
-eval.o: eval.h eval.c memory.o logger.o
-	gcc $(GCC_ARGS) -c eval.c
-
-printer.o: printer.h printer.c memory.o output_stream.o
-	gcc $(GCC_ARGS) -c printer.c
-
-reader.o: reader.h reader.c memory.o scanner.o
-	gcc $(GCC_ARGS) -c reader.c
-
-memory.o: memory.h memory.c logger.o
-	gcc $(GCC_ARGS) -c memory.c
-
-scanner.o: scanner.h scanner.c
-	gcc $(GCC_ARGS) -c scanner.c
-
-logger.o: logger.h logger.c output_stream.o
-	gcc $(GCC_ARGS) -c logger.c
-
-output_stream.o: output_stream.h output_stream.c
-	gcc $(GCC_ARGS) -c output_stream.c
-
-
-bytecode_compiler.o: bytecode_compiler.c bytecode_compiler.h memory.h bytecode_generator.o
-	gcc $(GCC_ARGS) -c bytecode_compiler.c
-
-bytecode_generator.o: bytecode_generator.c bytecode_generator.h
-	gcc $(GCC_ARGS) -c bytecode_generator.c
-
-
-
+# Modules
 mod_hello: mod_hello.c
 	gcc $(GCC_ARGS) -c -fPIC mod_hello.c
 	gcc $(GCC_ARGS) -shared mod_hello.o -o mod_hello.so
 
-mod_bytecode: mod_bytecode.c
-	gcc $(GCC_ARGS) -c -fPIC mod_bytecode.c
-	gcc $(GCC_ARGS) -shared mod_bytecode.o -o mod_bytecode.so
+
+# Indiviual components, ordered by dependencies
+scanner.o: scanner.h scanner.c
+	gcc $(GCC_ARGS) -c scanner.c
+
+bytecode_generator.o: bytecode_generator.c bytecode_generator.h bytecode.h
+	gcc $(GCC_ARGS) -c bytecode_generator.c
+
+output_stream.o: output_stream.h output_stream.c
+	gcc $(GCC_ARGS) -c output_stream.c
+
+logger.o: logger.h logger.c output_stream.o
+	gcc $(GCC_ARGS) -c logger.c
+
+memory.o: memory.h memory.c bytecode.h logger.o
+	gcc $(GCC_ARGS) -c memory.c
+
+reader.o: reader.h reader.c scanner.o logger.o memory.o
+	gcc $(GCC_ARGS) -c reader.c
+
+printer.o: printer.h printer.c output_stream.o memory.o
+	gcc $(GCC_ARGS) -c printer.c
+
+eval.o: eval.h eval.c logger.o memory.o
+	gcc $(GCC_ARGS) -c eval.c
+
+bytecode_interpreter.o: bytecode_interpreter.h bytecode_interpreter.c memory.o
+	gcc $(GCC_ARGS) -c bytecode_interpreter.c
+
+bytecode_compiler.o: bytecode_compiler.c bytecode_compiler.h bytecode_generator.o logger.o memory.o
+	gcc $(GCC_ARGS) -c bytecode_compiler.c
+
+buildins.o: buildins.h buildins.c logger.o memory.o eval.o bytecode_compiler.o
+	gcc $(GCC_ARGS) -c buildins.c
+
 
 clean:
 	rm -f *.o *.so repl core

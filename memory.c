@@ -101,6 +101,14 @@ atom_t* custom_atom_alloc(uint64_t type, void *data, buildin_func_t func){
 	return atom;
 }
 
+atom_t* interpreter_state_atom_alloc(size_t fp_index, size_t ip_index, size_t arg_count){
+	atom_t *atom = atom_alloc(T_INTERPRETER_STATE);
+	atom->interpreter_state.fp_index = fp_index;
+	atom->interpreter_state.ip_index = ip_index;
+	atom->interpreter_state.arg_count = arg_count;
+	return atom;
+}
+
 
 //
 // Environment stuff
