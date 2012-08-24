@@ -252,7 +252,7 @@ void test_function_calls(){
 	});
 	// Patch the compiled lambda itself into its own literal table at index 0.
 	// This allows the recursive call on itself.
-	fak->literal_table.atoms[0] = fac;
+	fac->literal_table.atoms[0] = fac;
 	
 	test_compiled_sample(fac, pair_atom_alloc(num_atom_alloc(2), nil_atom()), num_atom_alloc(2));
 	test_compiled_sample(fac, pair_atom_alloc(num_atom_alloc(4), nil_atom()), num_atom_alloc(24));
