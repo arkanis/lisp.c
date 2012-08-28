@@ -37,6 +37,11 @@ atom_t *eval_atom(atom_t *atom, env_t *env){
 					return eval_atom(evaled_function_slot->body, lambda_env);
 				}
 				break;
+			/*
+			case T_RUNTIME_LAMBDA:
+				return bci_eval(interp, evaled_function_slot, args, env);
+				break;
+			*/
 			case T_CUSTOM:
 				// If a custom atom has a func call it with the atom itself as first argument
 				if (evaled_function_slot->custom.func != NULL)

@@ -19,7 +19,7 @@ bool test_instruction(instruction_t subject, instruction_t expected, size_t idx,
 		return test(subject.jump_offset == expected.jump_offset, "%s %zu got wrong offset, expected %d, got %d",
 			msg, idx, expected.jump_offset, subject.jump_offset);
 	else if (subject.op == BC_PUSH_LITERAL || subject.op == BC_PUSH_ARG)
-		return test(subject.frame_offset == expected.frame_offset && subject.index == expected.index,
+		return test(subject.offset == expected.offset && subject.index == expected.index,
 			"%s %zu got wrong offset, expected %d, got %d", msg, idx, expected.jump_offset, subject.jump_offset);
 	
 	return true;

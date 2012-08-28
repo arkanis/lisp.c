@@ -17,10 +17,10 @@ void test_generation(){
 	test(bc.code[1].op == BC_PUSH_TRUE, "got wrong instruction: %d", bc.code[1].op);
 	test(bc.code[2].op == BC_PUSH_FALSE, "got wrong instruction: %d", bc.code[2].op);
 	
-	bcg_gen(&bc, (instruction_t){BC_PUSH_LITERAL, .frame_offset = 2, .index = 7});
+	bcg_gen(&bc, (instruction_t){BC_PUSH_LITERAL, .offset = 2, .index = 7});
 	test(bc.length == 4, "unexpected number of instructions: %d", bc.length);
 	test(bc.code[3].op == BC_PUSH_LITERAL, "got wrong instruction: %d", bc.code[3].op);
-	test(bc.code[3].frame_offset == 2, "got wrong offset: %d", bc.code[3].frame_offset);
+	test(bc.code[3].offset == 2, "got wrong offset: %d", bc.code[3].offset);
 	test(bc.code[3].index == 7, "got wrong index: %d", bc.code[3].index);
 	
 	bcg_destroy(&bc);

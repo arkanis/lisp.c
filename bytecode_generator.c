@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 
 #include "bytecode_generator.h"
 
@@ -29,11 +30,14 @@ size_t bcg_gen_op(bytecode_t *bc, uint8_t op){
  * (this is the value returned by `bcg_gen()` when generating a jump instruction).
  * 
  * The offset is calculated as the difference between the jump instruction and the
- * index of the instruction generated next. In effect this is the number of words between
- * the jump offset and its target. After this patch the jump will jump to the instruction
- * generated after this call.
+ * index of the instruction generated next. In effect this is the number of instructions
+ * between the jump offset and its target. After this patch the jump will jump to the
+ * instruction generated after this call.
+ * 
+ * The function asserts that only jump instructions are patched.
  */
 void bcg_backpatch_target_in(bytecode_t *bc, size_t index_of_jump_instruction){
 	size_t target_index = bc->length;
+	assert(bc->code[index_of_jump_instruction].op == BC_JUMP || bc->code[index_of_jump_instruction].op == BC_JUMP_IF_FALSE);
 	bc->code[index_of_jump_instruction].jump_offset = target_index - index_of_jump_instruction - 1;
 }

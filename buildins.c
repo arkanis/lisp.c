@@ -4,6 +4,7 @@
 #include "buildins.h"
 #include "eval.h"
 #include "bytecode_compiler.h"
+#include "bytecode_generator.h"
 #include "logger.h"
 
 //
@@ -20,6 +21,7 @@ atom_t* buildin_define(atom_t *args, env_t *env){
 	return value_atom;
 }
 
+
 atom_t* buildin_if(atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL)
 		return warn("if requires exactly tree arguments"), nil_atom();
@@ -31,11 +33,45 @@ atom_t* buildin_if(atom_t *args, env_t *env){
 		return eval_atom(args->rest->rest->first, env);
 }
 
+void compile_if(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL){
+		warn("if requires exactly tree arguments");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	// compile condition
+	bcc_compile_expr(cl, args->first, env);
+	size_t false_offset = bcg_gen(&cl->bytecode, (instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 0});
+	
+	// compile true case
+	bcc_compile_expr(cl, args->rest->first, env);
+	size_t end_offset = bcg_gen(&cl->bytecode, (instruction_t){BC_JUMP, .jump_offset = 0});
+	bcg_backpatch_target_in(&cl->bytecode, false_offset);
+	
+	// compile false case
+	bcc_compile_expr(cl, args->rest->rest->first, env);
+	bcg_backpatch_target_in(&cl->bytecode, end_offset);
+}
+
+
 atom_t* buildin_quote(atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL)
 		return warn("quote takes exactly one argument"), nil_atom();
 	return args->first;
 }
+
+void compile_quote(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL){
+		warn("quote takes exactly one argument");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	size_t idx = bcc_add_atom_to_literal_table(cl, args->first);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx, .offset = 0});
+}
+
 
 atom_t* buildin_begin(atom_t *args, env_t *env){
 	atom_t *result = nil_atom();
@@ -52,10 +88,10 @@ atom_t* buildin_lambda(atom_t *args, env_t *env){
 	
 	if (body->rest->type == T_NIL) {
 		// If we only have one expression in the body discard the trailing nil from the argument list.
-		// A lambday can only contain one expression so there is no need for a terminator nil.
+		// A lambda can only contain one expression so there is no need for a terminator nil.
 		body = body->first;
 	} else {
-		// If we got multiple expressions so wrap them into a begin() call. The terminator nil from the
+		// If we got multiple expressions wrap them into a begin() call. The terminator nil from the
 		// argument list is reused as the terminator nil of the arguments to begin().
 		body = pair_atom_alloc(sym_atom_alloc("begin"), body);
 	}
@@ -66,7 +102,7 @@ atom_t* buildin_lambda(atom_t *args, env_t *env){
 		// based lambda instead
 		atom_t *compiled_lambda = bcc_compile_to_lambda(arg_names, body, env);
 		if (compiled_lambda != NULL)
-			return compiled_lambda;
+			return runtime_lambda_atom_alloc(compiled_lambda, NULL);
 	}
 	
 	return lambda_atom_alloc(arg_names, body, env);
@@ -296,10 +332,11 @@ atom_t* buildin_print(atom_t *args, env_t *env){
 
 void register_buildins_in(env_t *env){
 	env_set(env, "define", buildin_atom_alloc(buildin_define, NULL));
-	env_set(env, "if", buildin_atom_alloc(buildin_if, NULL));
-	env_set(env, "quote", buildin_atom_alloc(buildin_quote, NULL));
-	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, NULL));
+	env_set(env, "if", buildin_atom_alloc(buildin_if, compile_if));
+	env_set(env, "quote", buildin_atom_alloc(buildin_quote, compile_quote));
 	env_set(env, "begin", buildin_atom_alloc(buildin_begin, NULL));
+	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, NULL));
+	
 	env_set(env, "cons", buildin_atom_alloc(buildin_cons, NULL));
 	env_set(env, "first", buildin_atom_alloc(buildin_first, NULL));
 	env_set(env, "rest", buildin_atom_alloc(buildin_rest, NULL));

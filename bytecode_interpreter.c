@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "bytecode_interpreter.h"
+#include "logger.h"
 
 static inline void stack_reallocate_if_neccessary(stack_t *stack){
 	if ((*stack)->length > (*stack)->allocated){
@@ -31,6 +32,14 @@ void stack_push(stack_t *stack, atom_t *atom){
 	(*stack)->length++;
 	stack_reallocate_if_neccessary(stack);
 	(*stack)->atoms[(*stack)->length-1] = atom;
+}
+
+void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
+	assert(stack != NULL && *stack != NULL);
+	(*stack)->length += n;
+	stack_reallocate_if_neccessary(stack);
+	for (size_t i = 0; i < n; i++)
+		(*stack)->atoms[(*stack)->length-1-i] = atom;
 }
 
 atom_t* stack_pop(stack_t *stack){
@@ -64,25 +73,25 @@ void bci_destroy(bytecode_interpreter_t interpreter){
  * Abbreviations: fp = frame pointer, ip = instruction pointer
  * 
  * Frame layout on stack:
- * 	fp -> compiled lambda that is currently executed
- * 	fp + 1 => arg 1
- * 	fp + 2 => arg 2
- * 	fp + (n-1) => arg n-1
- * 	fp + n => saved fp and ip indices (atom of type T_INTERPRETER_STATE)
+ * 	fp => compiled lambda that is currently executed
+ * 	fp + 1 => args
+ * 	fp + 1 + arg_count => vars
+ * 	fp + 1 + arg_count + var_count => saved fp and ip indices (atom of type T_INTERPRETER_STATE)
  * 
  * fp and ip are saved as indices. fp is an stack index and ip is the index into the bytecode
  * of the previously executed compiled lambda. This allows the stack and previous lambda
  * to be moved in memory. Important for the stack since it can grow (and be reallocated
  * while dooing so). The compiled lambda atom might move due to a future garbage collector.
  */
-atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* compiled_lambda, atom_t *args, env_t *env){
+atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t *env){
 	// The variables used by the interpreter to refer to the current context
-	size_t fp, arg_count;
+	size_t frame_index, arg_count;
 	instruction_t *ip;
 	
 	// Build the initial stack frame and context variables
-	fp = interp->stack->length;
-	stack_push(&interp->stack, compiled_lambda);
+	assert(rl->type == T_RUNTIME_LAMBDA);
+	frame_index = interp->stack->length;
+	stack_push(&interp->stack, rl);
 	
 	arg_count = 0;
 	for(atom_t *atom = args; atom->type == T_PAIR; atom = atom->rest){
@@ -90,8 +99,14 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* compiled_lambda, atom_t 
 		arg_count++;
 	}
 	
+	if (arg_count != rl->cl->comp_data->arg_count){
+		warn("Not enough arguments for function! Got %d, required %d", arg_count, rl->cl->comp_data->arg_count);
+		return nil_atom();
+	}
+	
+	stack_push_n(&interp->stack, nil_atom(), rl->cl->comp_data->var_count);
 	stack_push(&interp->stack, nil_atom());
-	ip = compiled_lambda->bytecode.code;
+	ip = rl->cl->bytecode.code;
 	
 	
 	while(true){
@@ -108,20 +123,83 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* compiled_lambda, atom_t 
 			case BC_PUSH_NUM:
 				stack_push(&interp->stack, num_atom_alloc(ip->num));
 				break;
-			case BC_PUSH_LITERAL:
-				assert(ip->index < interp->stack->atoms[fp]->literal_table.length);
-				stack_push(&interp->stack, interp->stack->atoms[fp]->literal_table.atoms[ip->index]);
-				break;
-			case BC_PUSH_ARG:
-				assert(ip->index < arg_count);
-				stack_push(&interp->stack, interp->stack->atoms[fp + 1 + ip->index]);
-				break;
-			case BC_PUSH_FROM_ENV:
-				assert(ip->index < interp->stack->atoms[fp]->literal_table.length);
-				atom_t *key = interp->stack->atoms[fp]->literal_table.atoms[ip->index];
+			case BC_PUSH_LITERAL: case BC_LAMBDA: {
+				scope_t this_scope = (scope_t){ .next = rl->scopes, .type = SCOPE_STACK, .arg_count = arg_count, .frame_index = frame_index};
+				scope_p target_scope = &this_scope;
+				for(uint16_t scope_offset = ip->offset; scope_offset > 0; scope_offset--)
+					target_scope = target_scope->next;
+				
+				assert(target_scope->type != SCOPE_ENV);
+				atom_t **frame_pointer = NULL;
+				if (target_scope->type == SCOPE_STACK)
+					frame_pointer = interp->stack->atoms + target_scope->frame_index;
+				else
+					frame_pointer = target_scope->atoms;
+				
+				assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA);
+				atom_t *target_cl = frame_pointer[0]->cl;
+				assert(ip->index < target_cl->literal_table.length);
+				if (ip->op == BC_PUSH_LITERAL) {
+					assert(target_cl->literal_table.atoms[ip->index]->type != T_COMPILED_LAMBDA);
+					stack_push(&interp->stack, target_cl->literal_table.atoms[ip->index]);
+				} else {
+					atom_t *compiled_lambda = target_cl->literal_table.atoms[ip->index];
+					assert(compiled_lambda->type == T_COMPILED_LAMBDA);
+					atom_t *new_rl = runtime_lambda_atom_alloc(compiled_lambda, scope_stack_alloc(rl->scopes, arg_count, frame_index));
+					stack_push(&interp->stack, new_rl);
+				}
+				} break;
+				
+			case BC_PUSH_ARG: case BC_PUSH_VAR: case BC_SAVE_VAR: {
+				scope_t this_scope = (scope_t){ .next = rl->scopes, .type = SCOPE_STACK, .arg_count = arg_count, .frame_index = frame_index};
+				scope_p target_scope = &this_scope;
+				for(uint16_t scope_offset = ip->offset; scope_offset > 0; scope_offset--)
+					target_scope = target_scope->next;
+				
+				assert(target_scope->type != SCOPE_ENV);
+				atom_t **frame_pointer = NULL;
+				if (target_scope->type == SCOPE_STACK)
+					frame_pointer = interp->stack->atoms + target_scope->frame_index;
+				else
+					frame_pointer = target_scope->atoms;
+				
+				switch(ip->op){
+				case BC_PUSH_ARG:
+					assert(ip->index < target_scope->arg_count);
+					stack_push(&interp->stack, frame_pointer[ip->index+1]);
+					break;
+				case BC_PUSH_VAR:
+					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
+					stack_push(&interp->stack, frame_pointer[target_scope->arg_count + ip->index+1]);
+					break;
+				case BC_SAVE_VAR: {
+					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
+					atom_t *value = stack_pop(&interp->stack);
+					frame_pointer[target_scope->arg_count + ip->index+1] = value;
+					}break;
+				}
+				
+				} break;
+				
+			case BC_PUSH_FROM_ENV: case BC_SAVE_ENV: {
+				// First loop though the scope chain to get the definition env
+				scope_p target_scope = rl->scopes;
+				while(target_scope->next != NULL)
+					target_scope = target_scope->next;
+				assert(target_scope->type == SCOPE_ENV);
+				env_t *target_env = target_scope->env;
+				
+				// Pop the key symbol
+				atom_t *key = stack_pop(&interp->stack);
 				assert(key->type == T_SYM);
-				stack_push(&interp->stack, env_get(env, key->sym));
-				break;
+				
+				if (ip->op == BC_PUSH_FROM_ENV) {
+					stack_push(&interp->stack, env_get(target_env, key->sym));
+				} else {
+					atom_t *value = stack_pop(&interp->stack);
+					env_set(target_env, key->sym, value);
+				}
+				} break;
 				
 			case BC_DROP:
 				stack_pop(&interp->stack);
@@ -136,25 +214,32 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* compiled_lambda, atom_t 
 				
 				
 			case BC_CALL: {
-					atom_t *new_arg_count_atom = stack_pop(&interp->stack);
-					stack_push(&interp->stack, interpreter_state_atom_alloc(fp, ip - interp->stack->atoms[fp]->bytecode.code, arg_count));
+					uint16_t new_arg_count = ip->num;
+					atom_t *saved_state = interpreter_state_atom_alloc(frame_index, ip - rl->cl->bytecode.code, arg_count);
 					
-					assert(new_arg_count_atom->type == T_NUM);
-					arg_count = new_arg_count_atom->num;
-					fp = interp->stack->length - 1 - 1 - arg_count; // length - 1 => interpreter state, -1 => last arg, - arg_count => func
-					ip = interp->stack->atoms[fp]->bytecode.code;
+					arg_count = new_arg_count;
+					// TODO: check if argument count on stack match the required argument count of the compiled lambda
+					frame_index = interp->stack->length - 1 - arg_count; // length - 1 => last arg, - arg_count => func
+					rl = interp->stack->atoms[frame_index];
+					assert(rl->type == T_RUNTIME_LAMBDA);
+					ip = rl->cl->bytecode.code;
+					
+					stack_push_n(&interp->stack, nil_atom(), rl->cl->comp_data->var_count);
+					stack_push(&interp->stack, saved_state);
+					
 					continue;
 				} break;
 				
 			case BC_RETURN: {
 					atom_t *return_value = stack_pop(&interp->stack);
 					atom_t *state = stack_pop(&interp->stack);
-					// Pop the arguments and the compiled lambda
-					stack_pop_n(&interp->stack, arg_count + 1);
+					// Pop the arguments, variables and the compiled lambda
+					stack_pop_n(&interp->stack, arg_count + rl->cl->comp_data->var_count + 1);
 					if (state->type == T_INTERPRETER_STATE) {
 						arg_count = state->interpreter_state.arg_count;
-						fp = state->interpreter_state.fp_index;
-						ip = interp->stack->atoms[fp]->bytecode.code + state->interpreter_state.ip_index;
+						frame_index = state->interpreter_state.fp_index;
+						rl = interp->stack->atoms[frame_index];
+						ip = rl->cl->bytecode.code + state->interpreter_state.ip_index;
 						stack_push(&interp->stack, return_value);
 					} else {
 						return return_value;
@@ -215,8 +300,76 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* compiled_lambda, atom_t 
 				assert(false);
 		}
 		ip++;
-		assert(ip < interp->stack->atoms[fp]->bytecode.code + interp->stack->atoms[fp]->bytecode.length);
+		assert(ip < rl->cl->bytecode.code + rl->cl->bytecode.length);
 	}
 	
 	return nil_atom();
 }
+
+/*
+
+			case BC_PUSH_ARG: case BC_PUSH_VAR: case BC_SAVE_VAR: {
+				// remember, what is called fp up above is actually the frame index (fi)
+				// Start with the frame pointer on the first arg of the current context
+				size_t frame_index = fp;  // stack index of the stack frame we are currently in
+				atom_t **frame_ptr = interp->stack->atoms + fp + 1;  // pointer to the first arg in the stack frame or captured frame we're currently in
+				size_t frame_arg_count = arg_count;  // the arg count in the stack frame or captured frame we currently are
+				
+				int16_t fo = ip->offset;  // offset counter, if is reaches zero we're where we want to be
+				atom_t *lambda = cl;  // current compiled lambda
+				captured_frame_p cf = NULL;  // pointer to the current captured frame. required to advance via the next pointer.
+				
+				// Repeat the game until we worked through all the required offsets
+				while(fo > 0){
+					// Take the first captured frame
+					if (lambda->comp_data->captured_frames != NULL){
+						cf = lambda->comp_data->captured_frames;
+						frame_ptr = cf->atoms;
+						frame_arg_count = cf->arg_count;
+						fo--;
+						if (fo == 0)
+							break;
+						
+						// Take the next captured frames attached to this lambda
+						while(fo > 0 && cf && cf->next != NULL){
+							cf = cf->next;
+							frame_ptr = cf->atoms;
+							frame_arg_count = cf->arg_count;
+							fo--;
+						}
+					}
+					
+					// Nothing left in this lambda or its captured frames. This means the frame_offset
+					// referes to an outer arg or local that is still on the stack. So lets go and dig up the
+					// prev stack frame.
+					if (fo > 0){
+						atom_t *state = interp->stack->atoms[frame_index + 1 + lambda->comp_data->arg_count + lambda->comp_data->var_count];
+						assert(state->type == T_INTERPRETER_STATE);
+						lambda = interp->stack->atoms[state->interpreter_state.fp_index];
+						assert(lambda->type == T_COMPILED_LAMBDA);
+						frame_ptr = interp->stack->atoms + state->interpreter_state.fp_index + 1;
+						frame_index = state->interpreter_state.fp_index;
+						frame_arg_count = state->interpreter_state.arg_count;
+						fo--;
+					}
+				}
+				
+				switch(ip->op){
+				case BC_PUSH_ARG:
+					assert(ip->index < frame_arg_count);
+					stack_push(&interp->stack, frame_ptr[ip->index]);
+					break;
+				case BC_PUSH_VAR:
+					assert(ip->index < lambda->comp_data->var_count);
+					stack_push(&interp->stack, frame_ptr[frame_arg_count + ip->index]);
+					break;
+				case BC_SAVE_VAR: {
+					assert(ip->index < lambda->comp_data->var_count);
+					atom_t *value = stack_pop(&interp->stack);
+					frame_ptr[frame_arg_count + ip->index] = value;
+					}break;
+				}
+				
+				} break;
+
+*/
