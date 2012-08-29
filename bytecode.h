@@ -139,4 +139,9 @@ typedef struct {
 #define BC_NOT			25
 #define BC_XOR			26
 
+// DONE
+#define BC_CONS			27
+#define BC_FIRST			28
+#define BC_REST			29
+
 #endif

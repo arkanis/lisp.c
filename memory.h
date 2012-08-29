@@ -81,8 +81,11 @@ struct atom_s {
 		} custom;
 		struct {
 			size_t fp_index;
-			size_t ip_index;
-			size_t arg_count;
+			uint32_t ip_index;
+			uint16_t arg_count;
+			uint8_t padding;
+			uint8_t scope_escaped;
+			scope_p frame_scope;
 		} interpreter_state;
 	};
 };
@@ -153,7 +156,7 @@ atom_t* compiled_lambda_atom_alloc(bytecode_t bytecode, atom_list_t literal_tabl
 atom_t* runtime_lambda_atom_alloc(atom_t *compiled_lambda, scope_p scopes);
 atom_t* env_atom_alloc(env_t *env);
 atom_t* custom_atom_alloc(uint64_t type, void *data, buildin_func_t func);
-atom_t* interpreter_state_atom_alloc(size_t fp_index, size_t ip_index, size_t arg_count);
+atom_t* interpreter_state_atom_alloc(size_t fp_index, size_t ip_index, size_t arg_count, uint8_t scope_escaped, scope_p frame_scope);
 
 // Convinience functions to alloc and initialize scope_t structures
 scope_p scope_stack_alloc(scope_p next, uint16_t arg_count, size_t frame_index);

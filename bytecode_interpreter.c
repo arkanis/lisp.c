@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <string.h>
 
 #include "bytecode_interpreter.h"
 #include "logger.h"
@@ -87,6 +88,8 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 	// The variables used by the interpreter to refer to the current context
 	size_t frame_index, arg_count;
 	instruction_t *ip;
+	scope_p frame_scope = NULL;  // allocated when the first lambda is built
+	uint8_t scope_escaped = false;
 	
 	// Build the initial stack frame and context variables
 	assert(rl->type == T_RUNTIME_LAMBDA);
@@ -108,6 +111,29 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 	stack_push(&interp->stack, nil_atom());
 	ip = rl->cl->bytecode.code;
 	
+	
+	inline void check_atom_for_escaped_scope(atom_t *subject){
+		if (frame_scope == NULL || scope_escaped == true)
+			return;
+		
+		switch(subject->type){
+			case T_PAIR:
+				check_atom_for_escaped_scope(subject->first);
+				check_atom_for_escaped_scope(subject->rest);
+				break;
+			case T_RUNTIME_LAMBDA:
+				for (scope_p s = subject->scopes; s != NULL; s = s->next){
+					if (s == frame_scope){
+						scope_escaped = true;
+						return;
+					}
+				}
+				break;
+			default:
+				// Other atoms don't need to be checked (can't contain scope references)
+				break;
+		}
+	}
 	
 	while(true){
 		switch(ip->op){
@@ -145,7 +171,9 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				} else {
 					atom_t *compiled_lambda = target_cl->literal_table.atoms[ip->index];
 					assert(compiled_lambda->type == T_COMPILED_LAMBDA);
-					atom_t *new_rl = runtime_lambda_atom_alloc(compiled_lambda, scope_stack_alloc(rl->scopes, arg_count, frame_index));
+					if (frame_scope == NULL)
+						frame_scope = scope_stack_alloc(rl->scopes, arg_count, frame_index);
+					atom_t *new_rl = runtime_lambda_atom_alloc(compiled_lambda, frame_scope);
 					stack_push(&interp->stack, new_rl);
 				}
 				} break;
@@ -175,6 +203,8 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				case BC_SAVE_VAR: {
 					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
 					atom_t *value = stack_pop(&interp->stack);
+					if (ip->offset > 0)  // no need to check if we store the atom in our own stack frame
+						check_atom_for_escaped_scope(value);
 					frame_pointer[target_scope->arg_count + ip->index+1] = value;
 					}break;
 				}
@@ -197,6 +227,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					stack_push(&interp->stack, env_get(target_env, key->sym));
 				} else {
 					atom_t *value = stack_pop(&interp->stack);
+					check_atom_for_escaped_scope(value);
 					env_set(target_env, key->sym, value);
 				}
 				} break;
@@ -215,7 +246,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				
 			case BC_CALL: {
 					uint16_t new_arg_count = ip->num;
-					atom_t *saved_state = interpreter_state_atom_alloc(frame_index, ip - rl->cl->bytecode.code, arg_count);
+					atom_t *saved_state = interpreter_state_atom_alloc(frame_index, ip - rl->cl->bytecode.code, arg_count, scope_escaped, frame_scope);
 					
 					arg_count = new_arg_count;
 					// TODO: check if argument count on stack match the required argument count of the compiled lambda
@@ -223,6 +254,8 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					rl = interp->stack->atoms[frame_index];
 					assert(rl->type == T_RUNTIME_LAMBDA);
 					ip = rl->cl->bytecode.code;
+					frame_scope = NULL;
+					scope_escaped = false;
 					
 					stack_push_n(&interp->stack, nil_atom(), rl->cl->comp_data->var_count);
 					stack_push(&interp->stack, saved_state);
@@ -232,7 +265,19 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				
 			case BC_RETURN: {
 					atom_t *return_value = stack_pop(&interp->stack);
+					// TODO: Make sure to revert to the start frame_index here. Right now we're done for if a function does
+					// not pop as many values as it pushes (in all brances).
 					atom_t *state = stack_pop(&interp->stack);
+					// Search the return value for an escaped scope if necessary
+					check_atom_for_escaped_scope(return_value);
+					// Capture the scope if it escaped
+					if (scope_escaped){
+						size_t frame_size = (1 + arg_count + rl->cl->comp_data->var_count) * sizeof(atom_t*);
+						frame_scope->type = SCOPE_HEAP;
+						frame_scope->atoms = malloc(frame_size);
+						memcpy(frame_scope->atoms, interp->stack->atoms + frame_index, frame_size);
+					}
+					
 					// Pop the arguments, variables and the compiled lambda
 					stack_pop_n(&interp->stack, arg_count + rl->cl->comp_data->var_count + 1);
 					if (state->type == T_INTERPRETER_STATE) {
@@ -240,6 +285,8 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 						frame_index = state->interpreter_state.fp_index;
 						rl = interp->stack->atoms[frame_index];
 						ip = rl->cl->bytecode.code + state->interpreter_state.ip_index;
+						frame_scope = state->interpreter_state.frame_scope;
+						scope_escaped = state->interpreter_state.scope_escaped;
 						stack_push(&interp->stack, return_value);
 					} else {
 						return return_value;
@@ -293,6 +340,22 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				}
 				
 				stack_push(&interp->stack, result);
+			} break;
+			
+			case BC_CONS: {
+				atom_t *b = stack_pop(&interp->stack);
+				atom_t *a = stack_pop(&interp->stack);
+				stack_push(&interp->stack, pair_atom_alloc(a, b));
+			} break;
+			case BC_FIRST: {
+				atom_t *pair = stack_pop(&interp->stack);
+				assert(pair->type == T_PAIR);
+				stack_push(&interp->stack, pair->first);
+			} break;
+			case BC_REST: {
+				atom_t *pair = stack_pop(&interp->stack);
+				assert(pair->type == T_PAIR);
+				stack_push(&interp->stack, pair->rest);
 			} break;
 			
 			default:

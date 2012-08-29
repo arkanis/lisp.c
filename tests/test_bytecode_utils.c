@@ -45,6 +45,8 @@ bool test_atom(atom_t *subject, atom_t expected, size_t idx, char *msg){
 		case T_SYM:
 			return test(strcmp(subject->str, expected.str) == 0, "%s %zu got wrong string value, expected %s, got %s",
 				msg, idx, expected.sym, subject->sym);
+		case T_PAIR:
+			return test_atom(subject->first, *expected.first, idx, msg) && test_atom(subject->rest, *expected.rest, idx, msg);
 	};
 	
 	warn("Don't know how to compare atom type %d", subject->type);

@@ -371,6 +371,34 @@ void test_lexical_scoping(){
 	test_compiled_sample(test, nil_atom(), num_atom_alloc(45));
 }
 
+void test_pair_instructions(){
+	test_sample((instruction_t[]){
+		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_CONS},
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	}, NULL, nil_atom(), 0, pair_atom_alloc(true_atom(), nil_atom()));
+	
+	test_sample((instruction_t[]){
+		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_CONS},
+		(instruction_t){BC_FIRST},
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	}, NULL, nil_atom(), 0, true_atom());
+	
+	test_sample((instruction_t[]){
+		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_CONS},
+		(instruction_t){BC_REST},
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	}, NULL, nil_atom(), 0, false_atom());
+}
+
 void test_capturing(){
 	/* Idea:
 	
@@ -378,7 +406,7 @@ void test_capturing(){
 	captures the current n (e.g. 3, 2, 1) and adds it's argument to it. Therefore each
 	frame needs to be captured and the scoping has to work reliably.
 	
-	(define test
+	(define test (lambda ()
 		(define generate_adders (lambda (n)
 			(if (eq n 0)
 				nil
@@ -391,46 +419,81 @@ void test_capturing(){
 		))
 		(define adders (generate_adders 3))
 		(define add3 (frist adders))
-		(add3 7)
-	)
+		(define add2 (first (rest adders)))
+		(add2 (add3 7))
+	))
 	
 	*/
 	
-	/*
-	atom_t *ret_first_outer_local = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+	atom_t *adder = compiled((instruction_t[]){
+		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},  // x
+		(instruction_t){BC_PUSH_ARG, .offset = 1, .index = 0},  // n, needs to be captured
+		(instruction_t){BC_ADD},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
-	}, NULL, 0, 0);
+	}, NULL, 1, 0);
 	
-	atom_t *stack_polluter = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 17},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define wrong 17)
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 1},  // load ret_first_outer_local
-		(instruction_t){BC_CALL, .num = 0},
-		(instruction_t){BC_RETURN},
-		(instruction_t){BC_NULL}
-	}, NULL, 0, 1);
-	
-	atom_t *test = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 45},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define right 45)
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  //  create ret_first_outer_local lambda from literal table
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define ret_first_outer_local ...)
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 1},  // create stack_polluter lambda from literal table
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define stack_polluter ...)
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},
-		(instruction_t){BC_CALL, .num = 0},
+	atom_t *generate_adders = compiled((instruction_t[]){
+		// (eq n 0)
+			(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},  // n
+			(instruction_t){BC_PUSH_NUM, .num = 0},  // 0
+		(instruction_t){BC_EQ},
+		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
+			// true case
+			(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_JUMP, .jump_offset = 7},
+			// false case
+			// cons first: (lambda (x) (plus x n))
+				(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},
+			// cons rest
+				// load generate_adders
+				(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+				// args for generate_adders
+					// (minus n 1)
+					(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
+					(instruction_t){BC_PUSH_NUM, .num = 1},
+					(instruction_t){BC_SUB},
+				(instruction_t){BC_CALL, .num = 1},
+			(instruction_t){BC_CONS},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, (atom_t*[]){
-		ret_first_outer_local,
-		stack_polluter,
+		adder,
 		NULL
-	}, 0, 3);
+	}, 1, 0);
 	
-	test_compiled_sample(test, nil_atom(), num_atom_alloc(45));
-	*/
+	atom_t *test = compiled((instruction_t[]){
+		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  // create generate_adders lambda
+		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define generate_adders ...)
+		
+		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_PUSH_NUM, .num = 3},
+		(instruction_t){BC_CALL, .num = 1},  // (generate_adders 3)
+		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define adders ...)
+		
+		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_FIRST},  // (frist adders)
+		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define add3 ...)
+		
+		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_REST},
+		(instruction_t){BC_FIRST},
+		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 3},  // (define add2 (first (rest adders)))
+		
+		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 3},  // load add2
+			(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},  // load add3
+			(instruction_t){BC_PUSH_NUM, .num = 7},
+			(instruction_t){BC_CALL, .num = 1},  // (add3 7)
+		(instruction_t){BC_CALL, .num = 1},  // (add2 ...)
+		
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	}, (atom_t*[]){
+		generate_adders,
+		NULL
+	}, 0, 4);
+	
+	test_compiled_sample(test, nil_atom(), num_atom_alloc(12));
 }
 
 int main(){
@@ -451,6 +514,9 @@ int main(){
 	test_arg_and_local_offset();
 	
 	test_lexical_scoping();
+	
+	test_pair_instructions();
+	test_capturing();
 	
 	bci_destroy(interpreter);
 	return show_test_report();

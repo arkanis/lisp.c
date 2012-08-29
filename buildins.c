@@ -119,6 +119,19 @@ atom_t* buildin_cons(atom_t *args, env_t *env){
 	return pair_atom_alloc(eval_atom(args->first, env), eval_atom(args->rest->first, env));
 }
 
+void compile_cons(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("cons needs exactly two arguments to build a pair")
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_CONS});
+}
+
+
 atom_t* buildin_first(atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL)
 		return warn("first requires exactly one argument"), nil_atom();	
@@ -130,9 +143,21 @@ atom_t* buildin_first(atom_t *args, env_t *env){
 	return pair_atom->first;
 }
 
+void compile_rest(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL){
+		warn("first requires exactly one argument");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_FIRST});
+}
+
+
 atom_t* buildin_rest(atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL)
-		return warn("rest requires exactly one argument"), nil_atom();	
+		return warn("rest requires exactly one argument"), nil_atom();
 	
 	atom_t *pair_atom = eval_atom(args->first, env);
 	if (pair_atom->type != T_PAIR)
@@ -140,6 +165,18 @@ atom_t* buildin_rest(atom_t *args, env_t *env){
 	
 	return pair_atom->rest;
 }
+
+void compile_rest(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_NIL){
+		warn("rest requires exactly one argument");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_REST});
+}
+
 
 
 //
@@ -337,9 +374,9 @@ void register_buildins_in(env_t *env){
 	env_set(env, "begin", buildin_atom_alloc(buildin_begin, NULL));
 	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, NULL));
 	
-	env_set(env, "cons", buildin_atom_alloc(buildin_cons, NULL));
-	env_set(env, "first", buildin_atom_alloc(buildin_first, NULL));
-	env_set(env, "rest", buildin_atom_alloc(buildin_rest, NULL));
+	env_set(env, "cons", buildin_atom_alloc(buildin_cons, compile_cons));
+	env_set(env, "first", buildin_atom_alloc(buildin_first, compile_first));
+	env_set(env, "rest", buildin_atom_alloc(buildin_rest, compile_rest));
 	
 	env_set(env, "+", buildin_atom_alloc(buildin_plus, NULL));
 	env_set(env, "-", buildin_atom_alloc(buildin_minus, NULL));
