@@ -43,6 +43,9 @@ void print_atom(output_stream_t *stream, atom_t *atom){
 			print_atom(stream, atom->body);
 			os_printf(stream, ")");
 			break;
+		case T_RUNTIME_LAMBDA:
+			os_printf(stream, "runtime lambda %p", atom);
+			break;
 		case T_CUSTOM:
 			os_printf(stream, "custom atom, type: %ud, data: %p, func: %p", atom->custom.type, atom->custom.data, atom->custom.func);
 			break;

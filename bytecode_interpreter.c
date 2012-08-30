@@ -3,8 +3,11 @@
 #include <assert.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #include "bytecode_interpreter.h"
 #include "logger.h"
+
 
 static inline void stack_reallocate_if_neccessary(stack_t *stack){
 	if ((*stack)->length > (*stack)->allocated){
@@ -49,6 +52,11 @@ atom_t* stack_pop(stack_t *stack){
 	(*stack)->length--;
 	stack_reallocate_if_neccessary(stack);
 	return val;
+}
+
+atom_t* stack_peek(stack_t *stack){
+	assert(stack != NULL && *stack != NULL);
+	return (*stack)->atoms[(*stack)->length-1];
 }
 
 void stack_pop_n(stack_t *stack, size_t n){
@@ -202,7 +210,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					break;
 				case BC_SAVE_VAR: {
 					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
-					atom_t *value = stack_pop(&interp->stack);
+					atom_t *value = stack_peek(&interp->stack);
 					if (ip->offset > 0)  // no need to check if we store the atom in our own stack frame
 						check_atom_for_escaped_scope(value);
 					frame_pointer[target_scope->arg_count + ip->index+1] = value;
@@ -220,13 +228,14 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				env_t *target_env = target_scope->env;
 				
 				// Pop the key symbol
-				atom_t *key = stack_pop(&interp->stack);
+				assert(ip->index < rl->cl->literal_table.length);
+				atom_t *key = rl->cl->literal_table.atoms[ip->index];
 				assert(key->type == T_SYM);
 				
 				if (ip->op == BC_PUSH_FROM_ENV) {
 					stack_push(&interp->stack, env_get(target_env, key->sym));
 				} else {
-					atom_t *value = stack_pop(&interp->stack);
+					atom_t *value = stack_peek(&interp->stack);
 					check_atom_for_escaped_scope(value);
 					env_set(target_env, key->sym, value);
 				}

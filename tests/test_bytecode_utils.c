@@ -21,6 +21,9 @@ bool test_instruction(instruction_t subject, instruction_t expected, size_t idx,
 	else if (subject.op == BC_PUSH_LITERAL || subject.op == BC_PUSH_ARG)
 		return test(subject.offset == expected.offset && subject.index == expected.index,
 			"%s %zu got wrong offset, expected %d, got %d", msg, idx, expected.jump_offset, subject.jump_offset);
+	else if (subject.op == BC_CALL)
+		return test(subject.num == expected.num,
+			"%s %zu got wrong num, expected %d, got %d", msg, idx, expected.num, subject.num);
 	
 	return true;
 }

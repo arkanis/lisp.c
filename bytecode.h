@@ -78,7 +78,8 @@ typedef struct {
 #define BC_PUSH_VAR		7
 
 /**
- * Pops the top of the stack and saves this atom in a local variable.
+ * Stores the top of the stack in a local variable. The atom is NOT popped! It's left on the
+ * stack as the return value of `define()`.
  * Instruction properties used:
  * 	frame_offset (number of frames to got up)
  * 	index (index of the local variable)
@@ -86,17 +87,20 @@ typedef struct {
 #define BC_SAVE_VAR		9
 
 /**
- * Pops a symbol atom from the top of the stack. Then searches for a matching entry in the
- * outer definition environment and pushes the found atom on the stack.
- * Instruction properties used: none
+ * Takes a symbol out of the literal table and searches for a matching entry in the
+ * outer definition environment. The found atom is pushes on the stack.
+ * Instruction properties used:
+ * 	index (entry of the literal table to push on the stack)
  * 
- * TODO: actually implement this in the bytecode interpreter
- * TODO: possible optimization: use frame_offset and index to address a literal. should cover
- * 	cases where the symbol name is not calculated at run time (majority of cases?). How to
- * 	encode that the properties should not be used? extra instruction? or negative frame_offset?
+ * frame_offset is not used right now. Don't see a usecase were we access the literal
+ * table of a parent lambda.
  */
 #define BC_PUSH_FROM_ENV	8
 
+/**
+ * Stores the top of the stack in the environment of the outermost compiled lambda. The
+ * atom is NOT popped! It's left on the stack as the return value of `define()`.
+ */
 #define BC_SAVE_ENV		10
 
 #define BC_DROP			11

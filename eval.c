@@ -2,6 +2,7 @@
 
 #include "logger.h"
 #include "eval.h"
+#include "bytecode_interpreter.h"
 
 atom_t *eval_atom(atom_t *atom, env_t *env){
 	if (atom->type < T_COMPLEX_ATOM) {
@@ -37,11 +38,14 @@ atom_t *eval_atom(atom_t *atom, env_t *env){
 					return eval_atom(evaled_function_slot->body, lambda_env);
 				}
 				break;
-			/*
-			case T_RUNTIME_LAMBDA:
-				return bci_eval(interp, evaled_function_slot, args, env);
-				break;
-			*/
+			
+			case T_RUNTIME_LAMBDA: {
+				bytecode_interpreter_t interpreter = bci_new(0);
+				atom_t *result = bci_eval(interpreter, evaled_function_slot, args, env);
+				bci_destroy(interpreter);
+				return result;
+				} break;
+			
 			case T_CUSTOM:
 				// If a custom atom has a func call it with the atom itself as first argument
 				if (evaled_function_slot->custom.func != NULL)

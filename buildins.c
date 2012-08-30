@@ -1,5 +1,8 @@
 #include <dlfcn.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
 
 #include "buildins.h"
 #include "eval.h"
@@ -19,6 +22,25 @@ atom_t* buildin_define(atom_t *args, env_t *env){
 	atom_t *value_atom = eval_atom(args->rest->first, env);
 	env_set(env, name_atom->sym, value_atom);
 	return value_atom;
+}
+
+void compile_define(atom_t *cl, atom_t *args, env_t *env){
+	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("define requires two arguments and the first one has to be a symbol");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	// Add the name to the variable name list
+	atom_t *name_atom = args->first;
+	cl->comp_data->var_count++;
+	size_t names_length = cl->comp_data->arg_count + cl->comp_data->var_count;
+	cl->comp_data->names = realloc(cl->comp_data->names, names_length * sizeof(cl->comp_data->names[0]));
+	cl->comp_data->names[names_length-1] = strdup(name_atom->sym);
+	
+	// Compile value expr and store the initial value afterwards
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_SAVE_VAR, .index = cl->comp_data->var_count - 1, .offset = 0});
 }
 
 
@@ -80,6 +102,24 @@ atom_t* buildin_begin(atom_t *args, env_t *env){
 	return result;
 }
 
+void compile_begin(atom_t *cl, atom_t *args, env_t *env){
+	if (args->type != T_PAIR){
+		warn("begin needs at least one expr to compile");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	// Compile first expr
+	bcc_compile_expr(cl, args->first, env);
+	
+	// If there are other ones drop the prev stack value and compile the next expr
+	for(atom_t *pair = args->rest; pair->type == T_PAIR; pair = pair->rest){
+		bcg_gen_op(&cl->bytecode, BC_DROP);
+		bcc_compile_expr(cl, pair->first, env);
+	}
+}
+
+
 atom_t* buildin_lambda(atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR)
 		return warn("lambda needs at least two arguments (arg list and body)"), nil_atom();
@@ -99,13 +139,40 @@ atom_t* buildin_lambda(atom_t *args, env_t *env){
 	// Only try to compile the lambda if `__compile_lambdas` is set to true
 	if ( env_get(env, "__compile_lambdas") == true_atom() ){
 		// If bcc_compile_to_lambda() returns NULL the compilation failed and we will use a normal AST
-		// based lambda instead
-		atom_t *compiled_lambda = bcc_compile_to_lambda(arg_names, body, env);
+		// based lambda instead. As parent compiled lambda we just use NULL since we came from the
+		// eval tree interpreter. Therefore there is no outer compiled lambda we know about at compile time.
+		atom_t *compiled_lambda = bcc_compile_to_lambda(arg_names, body, env, NULL);
+		// Instanciate the compiled lambda and add an env scope to it. This is the root scope for all nested lambdas.
 		if (compiled_lambda != NULL)
-			return runtime_lambda_atom_alloc(compiled_lambda, NULL);
+			return runtime_lambda_atom_alloc(compiled_lambda, scope_env_alloc(env));
 	}
 	
 	return lambda_atom_alloc(arg_names, body, env);
+}
+
+void compile_lambda(atom_t *cl, atom_t *args, env_t *env){
+	if (args->type != T_PAIR){
+		warn("lambda needs at least two arguments (arg list and body)");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	atom_t *arg_names = args->first;
+	atom_t *body = args->rest;
+	
+	if (body->rest->type == T_NIL) {
+		// If we only have one expression in the body discard the trailing nil from the argument list.
+		// A lambda can only contain one expression so there is no need for a terminator nil.
+		body = body->first;
+	} else {
+		// If we got multiple expressions wrap them into a begin() call. The terminator nil from the
+		// argument list is reused as the terminator nil of the arguments to begin().
+		body = pair_atom_alloc(sym_atom_alloc("begin"), body);
+	}
+	
+	atom_t *child_cl = bcc_compile_to_lambda(arg_names, body, env, cl);
+	size_t literal_idx = bcc_add_atom_to_literal_table(cl, child_cl);
+	bcg_gen(&cl->bytecode, (instruction_t){BC_LAMBDA, .index = literal_idx, .offset = 0});
 }
 
 
@@ -121,7 +188,7 @@ atom_t* buildin_cons(atom_t *args, env_t *env){
 
 void compile_cons(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
-		warn("cons needs exactly two arguments to build a pair")
+		warn("cons needs exactly two arguments to build a pair");
 		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
 		return;
 	}
@@ -143,7 +210,7 @@ atom_t* buildin_first(atom_t *args, env_t *env){
 	return pair_atom->first;
 }
 
-void compile_rest(atom_t *cl, atom_t *args, env_t *env){
+void compile_first(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL){
 		warn("first requires exactly one argument");
 		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
@@ -195,6 +262,18 @@ atom_t* buildin_plus(atom_t *args, env_t *env){
 	return num_atom_alloc(first_arg->num + second_arg->num);
 }
 
+void compile_plus(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("plus requires two arguments");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_ADD);
+}
+
 atom_t* buildin_minus(atom_t *args, env_t *env){
 	atom_t *first_arg = eval_atom(args->first, env);
 	atom_t *second_arg = eval_atom(args->rest->first, env);
@@ -205,6 +284,18 @@ atom_t* buildin_minus(atom_t *args, env_t *env){
 	}
 	
 	return num_atom_alloc(first_arg->num - second_arg->num);
+}
+
+void compile_minus(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("minus requires two arguments");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_SUB);
 }
 
 atom_t* buildin_multiply(atom_t *args, env_t *env){
@@ -219,6 +310,18 @@ atom_t* buildin_multiply(atom_t *args, env_t *env){
 	return num_atom_alloc(first_arg->num * second_arg->num);
 }
 
+void compile_multiply(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("multiply requires two arguments");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_MUL);
+}
+
 atom_t* buildin_divide(atom_t *args, env_t *env){
 	atom_t *first_arg = eval_atom(args->first, env);
 	atom_t *second_arg = eval_atom(args->rest->first, env);
@@ -231,12 +334,24 @@ atom_t* buildin_divide(atom_t *args, env_t *env){
 	return num_atom_alloc(first_arg->num / second_arg->num);
 }
 
+void compile_divide(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("divide requires two arguments");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_DIV);
+}
+
 
 //
 // Comperators
 //
 
-atom_t* buildin_eqal(atom_t *args, env_t *env){
+atom_t* buildin_equal(atom_t *args, env_t *env){
 	atom_t *first_arg = eval_atom(args->first, env);
 	atom_t *second_arg = eval_atom(args->rest->first, env);
 	
@@ -249,6 +364,12 @@ atom_t* buildin_eqal(atom_t *args, env_t *env){
 		return true_atom();
 	else
 		return false_atom();
+}
+
+void compile_equal(atom_t *cl, atom_t *args, env_t *env){
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_EQ);
 }
 
 
@@ -368,21 +489,22 @@ atom_t* buildin_print(atom_t *args, env_t *env){
 }
 
 void register_buildins_in(env_t *env){
-	env_set(env, "define", buildin_atom_alloc(buildin_define, NULL));
+	env_set(env, "define", buildin_atom_alloc(buildin_define, compile_define));
 	env_set(env, "if", buildin_atom_alloc(buildin_if, compile_if));
 	env_set(env, "quote", buildin_atom_alloc(buildin_quote, compile_quote));
-	env_set(env, "begin", buildin_atom_alloc(buildin_begin, NULL));
-	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, NULL));
+	env_set(env, "begin", buildin_atom_alloc(buildin_begin, compile_begin));
+	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, compile_lambda));
 	
 	env_set(env, "cons", buildin_atom_alloc(buildin_cons, compile_cons));
 	env_set(env, "first", buildin_atom_alloc(buildin_first, compile_first));
 	env_set(env, "rest", buildin_atom_alloc(buildin_rest, compile_rest));
 	
-	env_set(env, "+", buildin_atom_alloc(buildin_plus, NULL));
-	env_set(env, "-", buildin_atom_alloc(buildin_minus, NULL));
-	env_set(env, "*", buildin_atom_alloc(buildin_multiply, NULL));
-	env_set(env, "/", buildin_atom_alloc(buildin_divide, NULL));
-	env_set(env, "=", buildin_atom_alloc(buildin_eqal, NULL));
+	env_set(env, "+", buildin_atom_alloc(buildin_plus, compile_plus));
+	env_set(env, "-", buildin_atom_alloc(buildin_minus, compile_minus));
+	env_set(env, "*", buildin_atom_alloc(buildin_multiply, compile_multiply));
+	env_set(env, "/", buildin_atom_alloc(buildin_divide, compile_divide));
+	
+	env_set(env, "=", buildin_atom_alloc(buildin_equal, compile_equal));
 	
 	env_set(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
 	env_set(env, "env_self", buildin_atom_alloc(buildin_env_self, NULL));

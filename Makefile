@@ -1,5 +1,5 @@
 GCC_ARGS = -Wall -std=gnu99 -g
-OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o bytecode_compiler.o bytecode_generator.o
+OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o bytecode_compiler.o bytecode_generator.o bytecode_interpreter.o
 LINKER_ARGS = -ldl
 
 run: tests/*.c repl

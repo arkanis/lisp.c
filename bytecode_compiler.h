@@ -15,7 +15,7 @@ Frame
 
 */
 
-atom_t* bcc_compile_to_lambda(atom_t *arg_names, atom_t *body, env_t *env);
+atom_t* bcc_compile_to_lambda(atom_t *arg_names, atom_t *body, env_t *env, atom_t *parent_cl);
 void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env);
 size_t bcc_add_atom_to_literal_table(atom_t *cl_atom, atom_t *subject);
 

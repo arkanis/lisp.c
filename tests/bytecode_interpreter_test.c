@@ -267,10 +267,9 @@ void test_env_instructions(){
 	atom_t *atom = num_atom_alloc(42);
 	test_sample((instruction_t[]){
 		(instruction_t){BC_PUSH_LITERAL, .index = 0},
-		(instruction_t){BC_PUSH_LITERAL, .index = 1},
-		(instruction_t){BC_SAVE_ENV},
-		(instruction_t){BC_PUSH_LITERAL, .index = 1},
-		(instruction_t){BC_PUSH_FROM_ENV},
+		(instruction_t){BC_SAVE_ENV, .index = 1},
+		(instruction_t){BC_DROP},
+		(instruction_t){BC_PUSH_FROM_ENV, .index = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, (atom_t*[]){
@@ -286,6 +285,7 @@ void test_var_instructions(){
 	atom_t *cl = compiled((instruction_t[]){
 		(instruction_t){BC_PUSH_NUM, .num = 43},
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -308,6 +308,7 @@ void test_arg_and_local_offset(){
 	atom_t *cl = compiled((instruction_t[]){
 		(instruction_t){BC_PUSH_LITERAL, .offset = 0, .index = 0},
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_LAMBDA, .offset = 0, .index = 1},
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
@@ -345,6 +346,7 @@ void test_lexical_scoping(){
 	atom_t *stack_polluter = compiled((instruction_t[]){
 		(instruction_t){BC_PUSH_NUM, .num = 17},
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define wrong 17)
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 1},  // load ret_first_outer_local
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
@@ -354,10 +356,13 @@ void test_lexical_scoping(){
 	atom_t *test = compiled((instruction_t[]){
 		(instruction_t){BC_PUSH_NUM, .num = 45},
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define right 45)
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  //  create ret_first_outer_local lambda from literal table
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define ret_first_outer_local ...)
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_LAMBDA, .offset = 0, .index = 1},  // create stack_polluter lambda from literal table
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define stack_polluter ...)
+		(instruction_t){BC_DROP},
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
@@ -418,7 +423,7 @@ void test_capturing(){
 			)
 		))
 		(define adders (generate_adders 3))
-		(define add3 (frist adders))
+		(define add3 (first adders))
 		(define add2 (first (rest adders)))
 		(add2 (add3 7))
 	))
@@ -465,20 +470,24 @@ void test_capturing(){
 	atom_t *test = compiled((instruction_t[]){
 		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  // create generate_adders lambda
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define generate_adders ...)
+		(instruction_t){BC_DROP},
 		
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
 		(instruction_t){BC_PUSH_NUM, .num = 3},
 		(instruction_t){BC_CALL, .num = 1},  // (generate_adders 3)
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define adders ...)
+		(instruction_t){BC_DROP},
 		
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
 		(instruction_t){BC_FIRST},  // (frist adders)
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define add3 ...)
+		(instruction_t){BC_DROP},
 		
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
 		(instruction_t){BC_REST},
 		(instruction_t){BC_FIRST},
 		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 3},  // (define add2 (first (rest adders)))
+		(instruction_t){BC_DROP},
 		
 		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 3},  // load add2
 			(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},  // load add3
