@@ -7,6 +7,7 @@
 
 #include "bytecode_interpreter.h"
 #include "logger.h"
+#include "eval.h"
 
 
 static inline void stack_reallocate_if_neccessary(stack_t *stack){
@@ -254,22 +255,76 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				
 				
 			case BC_CALL: {
-					uint16_t new_arg_count = ip->num;
-					atom_t *saved_state = interpreter_state_atom_alloc(frame_index, ip - rl->cl->bytecode.code, arg_count, scope_escaped, frame_scope);
+					uint16_t call_arg_count = ip->num;
+					atom_t *func = interp->stack->atoms[interp->stack->length - 1 - call_arg_count]; // length - 1 => last arg, - call_arg_count => func
 					
-					arg_count = new_arg_count;
-					// TODO: check if argument count on stack match the required argument count of the compiled lambda
-					frame_index = interp->stack->length - 1 - arg_count; // length - 1 => last arg, - arg_count => func
-					rl = interp->stack->atoms[frame_index];
-					assert(rl->type == T_RUNTIME_LAMBDA);
-					ip = rl->cl->bytecode.code;
-					frame_scope = NULL;
-					scope_escaped = false;
+					switch (func->type) {
+						case T_RUNTIME_LAMBDA: {
+							// Continue to use the stack
+							atom_t *saved_state = interpreter_state_atom_alloc(frame_index, ip - rl->cl->bytecode.code, arg_count, scope_escaped, frame_scope);
+							
+							arg_count = call_arg_count;
+							// TODO: check if argument count on stack match the required argument count of the compiled lambda
+							frame_index = interp->stack->length - 1 - call_arg_count; // length - 1 => last arg, - call_arg_count => func
+							rl = func;
+							ip = rl->cl->bytecode.code;
+							frame_scope = NULL;
+							scope_escaped = false;
+							
+							stack_push_n(&interp->stack, nil_atom(), rl->cl->comp_data->var_count);
+							stack_push(&interp->stack, saved_state);
+							
+							// Restart the outer while loop because we don't want to increment the instruction pointer (ip). Otherwise we would miss
+							// the first instruction of the new compiled lambda.
+							continue;
+							} break;
+							
+						case T_BUILDIN: {
+							// Build a pair argument list of the args and pop them from the stack while we're at it
+							atom_t *arg_atoms = nil_atom();
+							for(size_t i = 0; i < call_arg_count; i++)
+								arg_atoms = pair_atom_alloc(stack_pop(&interp->stack), arg_atoms);
+							
+							// Pop the func from the stack
+							atom_t *popped_func = stack_pop(&interp->stack);
+							assert(func == popped_func);
+							
+							// Let the buildin create the result. Pass the env of the bytecode interpreter since this is the best aproximation we have right now.
+							atom_t *result = func->func(arg_atoms, env);
+							stack_push(&interp->stack, result);
+							} break;
+							
+						case T_LAMBDA: {
+							// Create a new env with the unevaled args in it (the args on the stack have already been evaled by the compiled bytecode)
+							env_t *lambda_env = env_alloc(func->env);
+							
+							// Build a pair argument list of the args and pop them from the stack while we're at it
+							atom_t *arg_atoms = nil_atom();
+							for(size_t i = 0; i < call_arg_count; i++)
+								arg_atoms = pair_atom_alloc(stack_pop(&interp->stack), arg_atoms);
+							
+							// Bind lambda args
+							atom_t *arg_name_pair = func->args, *arg_value_pair = arg_atoms;
+							while(arg_name_pair->type == T_PAIR && arg_value_pair->type == T_PAIR){
+								env_set(lambda_env, arg_name_pair->first->sym, arg_value_pair->first);
+								arg_name_pair = arg_name_pair->rest;
+								arg_value_pair = arg_value_pair->rest;
+							}
+							
+							// Pop the func from the stack
+							atom_t *popped_func = stack_pop(&interp->stack);
+							assert(func == popped_func);
+							
+							atom_t *result = eval_atom(func->body, lambda_env);
+							stack_push(&interp->stack, result);
+							} break;
+							
+						default:
+							// Not sure what to do with T_CUSTOM in general. For the other atoms: they should never arrive here.
+							assert(0);
+							break;
+					}
 					
-					stack_push_n(&interp->stack, nil_atom(), rl->cl->comp_data->var_count);
-					stack_push(&interp->stack, saved_state);
-					
-					continue;
 				} break;
 				
 			case BC_RETURN: {
