@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "bytecode.h"
+#include "memory.h"
 
 bytecode_t bcg_init();
 void bcg_destroy(bytecode_t *bc);

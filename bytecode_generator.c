@@ -9,14 +9,14 @@ bytecode_t bcg_init(){
 }
 
 void bcg_destroy(bytecode_t *bc){
-	free(bc->code);
+	gc_free(bc->code);
 	bc->code = NULL;
 	bc->length = 0;
 }
 
 size_t bcg_gen(bytecode_t *bc, instruction_t instruction){
 	bc->length++;
-	bc->code = realloc(bc->code, bc->length * sizeof(bc->code[0]));
+	bc->code = gc_realloc(bc->code, bc->length * sizeof(bc->code[0]));
 	bc->code[bc->length-1] = instruction;
 	
 	/*

@@ -35,7 +35,7 @@ void compile_define(atom_t *cl, atom_t *args, env_t *env){
 	atom_t *name_atom = args->first;
 	cl->comp_data->var_count++;
 	size_t names_length = cl->comp_data->arg_count + cl->comp_data->var_count;
-	cl->comp_data->names = realloc(cl->comp_data->names, names_length * sizeof(cl->comp_data->names[0]));
+	cl->comp_data->names = gc_realloc(cl->comp_data->names, names_length * sizeof(cl->comp_data->names[0]));
 	cl->comp_data->names[names_length-1] = strdup(name_atom->sym);
 	
 	// Compile value expr and store the initial value afterwards

@@ -28,7 +28,7 @@ atom_t* bcc_compile_to_lambda(atom_t *arg_names, atom_t *body, env_t *env, atom_
 	// Put the arg names into the names array
 	for(atom_t *atom = arg_names; atom->type == T_PAIR; atom = atom->rest)
 		cl->comp_data->arg_count++;
-	cl->comp_data->names = malloc(cl->comp_data->arg_count * sizeof(cl->comp_data->names[0]));
+	cl->comp_data->names = gc_alloc(cl->comp_data->arg_count * sizeof(cl->comp_data->names[0]));
 	size_t i = 0;
 	for(atom_t *atom = arg_names; atom->type == T_PAIR; atom = atom->rest){
 		assert(atom->first->type == T_SYM);
@@ -124,7 +124,7 @@ void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 
 size_t bcc_add_atom_to_literal_table(atom_t *cl_atom, atom_t *subject){
 	cl_atom->literal_table.length++;
-	cl_atom->literal_table.atoms = realloc(cl_atom->literal_table.atoms, cl_atom->literal_table.length * sizeof(atom_t*));
+	cl_atom->literal_table.atoms = gc_realloc(cl_atom->literal_table.atoms, cl_atom->literal_table.length * sizeof(atom_t*));
 	cl_atom->literal_table.atoms[cl_atom->literal_table.length - 1] = subject;
 	return cl_atom->literal_table.length - 1;
 }

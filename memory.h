@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "bytecode.h"
+#include "gc.h"
 
 //
 // Atom and environment structures

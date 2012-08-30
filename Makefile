@@ -1,6 +1,6 @@
 GCC_ARGS = -Wall -std=gnu99 -g
-OBJ_FILES = memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o bytecode_compiler.o bytecode_generator.o bytecode_interpreter.o
-LINKER_ARGS = -ldl
+OBJ_FILES = gc.o memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o bytecode_compiler.o bytecode_generator.o bytecode_interpreter.o
+LINKER_ARGS = -ldl -lgc
 
 run: tests/*.c repl
 	cd tests; make tests
@@ -20,11 +20,11 @@ mod_hello: mod_hello.c
 	gcc $(GCC_ARGS) -shared mod_hello.o -o mod_hello.so
 
 
-# Indiviual components, ordered by dependencies
+# Indiviual components
 scanner.o: scanner.h scanner.c
 	gcc $(GCC_ARGS) -c scanner.c
 
-bytecode_generator.o: bytecode_generator.c bytecode_generator.h bytecode.h
+bytecode_generator.o: bytecode_generator.c bytecode_generator.h bytecode.h memory.o
 	gcc $(GCC_ARGS) -c bytecode_generator.c
 
 output_stream.o: output_stream.h output_stream.c
@@ -33,7 +33,10 @@ output_stream.o: output_stream.h output_stream.c
 logger.o: logger.h logger.c output_stream.o
 	gcc $(GCC_ARGS) -c logger.c
 
-memory.o: memory.h memory.c bytecode.h logger.o
+gc.o: gc.h gc.c
+	gcc $(GCC_ARGS) -c gc.c
+
+memory.o: memory.h memory.c bytecode.h gc.o logger.o
 	gcc $(GCC_ARGS) -c memory.c
 
 reader.o: reader.h reader.c scanner.o logger.o memory.o
@@ -42,7 +45,7 @@ reader.o: reader.h reader.c scanner.o logger.o memory.o
 printer.o: printer.h printer.c output_stream.o memory.o
 	gcc $(GCC_ARGS) -c printer.c
 
-eval.o: eval.h eval.c logger.o memory.o
+eval.o: eval.h eval.c logger.o memory.o bytecode_interpreter.o
 	gcc $(GCC_ARGS) -c eval.c
 
 bytecode_interpreter.o: bytecode_interpreter.h bytecode_interpreter.c memory.o
@@ -54,6 +57,9 @@ bytecode_compiler.o: bytecode_compiler.c bytecode_compiler.h bytecode_generator.
 buildins.o: buildins.h buildins.c logger.o memory.o eval.o bytecode_compiler.o
 	gcc $(GCC_ARGS) -c buildins.c
 
+
+dependencies:
+	sudo apt-get install gcc make libgc-dev libgc1c2
 
 clean:
 	rm -f *.o *.so repl core

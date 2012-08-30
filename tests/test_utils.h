@@ -9,11 +9,4 @@ bool test_func(bool expr, char *file, int line, const char *code, const char *me
 extern int tests_passed, tests_failed;
 int show_test_report();
 
-typedef struct {
-	FILE *in, *out;
-} capture_stream_t;
-
-capture_stream_t create_capture_stream();
-char* read_capture_stream(capture_stream_t stream);
-
 #endif

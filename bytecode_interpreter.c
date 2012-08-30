@@ -12,13 +12,13 @@
 static inline void stack_reallocate_if_neccessary(stack_t *stack){
 	if ((*stack)->length > (*stack)->allocated){
 		(*stack)->allocated = ((*stack)->allocated == 0) ? 2 : (*stack)->allocated * 2;
-		*stack = realloc(*stack, sizeof(size_t) * 2 + sizeof(atom_t) * (*stack)->allocated);
+		*stack = gc_realloc(*stack, sizeof(size_t) * 2 + sizeof(atom_t) * (*stack)->allocated);
 		assert((*stack)->length <= (*stack)->allocated);
 	}
 }
 
 stack_t stack_new(size_t initial_allocated){
-	stack_t stack = malloc(sizeof(size_t) * 2 + sizeof(atom_t) * initial_allocated);
+	stack_t stack = gc_alloc(sizeof(size_t) * 2 + sizeof(atom_t) * initial_allocated);
 	assert(stack != NULL);
 	stack->length = 0;
 	stack->allocated = initial_allocated;
@@ -27,7 +27,7 @@ stack_t stack_new(size_t initial_allocated){
 
 void stack_destroy(stack_t *stack){
 	assert(stack != NULL && *stack != NULL);
-	free(*stack);
+	gc_free(*stack);
 	*stack = NULL;
 }
 	
@@ -68,14 +68,14 @@ void stack_pop_n(stack_t *stack, size_t n){
 
 
 bytecode_interpreter_t bci_new(size_t preallocated_stack_size){
-	bytecode_interpreter_t interpreter = malloc(sizeof(bytecode_interpreter_s));
+	bytecode_interpreter_t interpreter = gc_alloc(sizeof(bytecode_interpreter_s));
 	interpreter->stack = stack_new(preallocated_stack_size);
 	return interpreter;
 }
 
 void bci_destroy(bytecode_interpreter_t interpreter){
 	stack_destroy(&interpreter->stack);
-	free(interpreter);
+	gc_free(interpreter);
 }
 
 /**
@@ -283,7 +283,8 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					if (scope_escaped){
 						size_t frame_size = (1 + arg_count + rl->cl->comp_data->var_count) * sizeof(atom_t*);
 						frame_scope->type = SCOPE_HEAP;
-						frame_scope->atoms = malloc(frame_size);
+						// The GC will free the frame when it's no longer needed
+						frame_scope->atoms = gc_alloc(frame_size);
 						memcpy(frame_scope->atoms, interp->stack->atoms + frame_index, frame_size);
 					}
 					
