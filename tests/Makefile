@@ -10,6 +10,11 @@ tests: eval_test printer_test reader_test logger_test scanner_test output_stream
 	./custom_atom_test
 	./bytecode_generator_test
 	./bytecode_compiler_test
+	./bytecode_interpreter_test
+
+bytecode_execution_test: bytecode_execution_test.c test_utils.o test_bytecode_utils.o
+	cd ..; make reader.o printer.o bytecode_interpreter.o bytecode_compiler.o output_stream.o scanner.o memory.o eval.o buildins.o
+	gcc $(GCC_ARGS) bytecode_execution_test.c test_utils.o test_bytecode_utils.o ../*.o -ldl -o bytecode_execution_test
 
 bytecode_interpreter_test: bytecode_interpreter_test.c ../bytecode_interpreter.h ../bytecode_interpreter.c ../buildins.h ../buildins.c test_utils.o test_bytecode_utils.o
 	cd ..; make bytecode_interpreter.o buildins.o

@@ -72,12 +72,12 @@ void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 			do {
 				if ( (idx = symbol_in_names(current_cl, expr)) != -1 ) {
 					// symbol is known in current scope (lambda)
-					if (idx < cl_atom->comp_data->arg_count) {
+					if (idx < current_cl->comp_data->arg_count) {
 						// symbol identifies an argument, generate a push-arg instruction
 						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_ARG, .index = idx, .offset = scope_offset});
 					} else {
 						// symbol identifies a local variable, generate a push-var instruction
-						idx = idx - cl_atom->comp_data->arg_count;
+						idx = idx - current_cl->comp_data->arg_count;
 						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_VAR, .index = idx, .offset = scope_offset});
 					}
 					break;

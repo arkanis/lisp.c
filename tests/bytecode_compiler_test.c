@@ -207,6 +207,60 @@ void test_env_lookup_on_unknown_vars(){
 	test_atom(rl->cl->literal_table.atoms[0], (atom_t){T_SYM, .str = "fac"}, 0, "fac lambda");
 }
 
+void test_self_recursion(){
+	char *code = "(lambda () \
+		\
+		(define fac (lambda (n) \
+			(if (= n 1) \
+				1 \
+				(* n (fac (- n 1))) \
+			) \
+		)) \
+		\
+		(fac 7) \
+	)";
+	atom_t *rl = test_sample(code, (instruction_t[]){
+		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},
+		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_DROP}, // from implicit begin
+		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_PUSH_NUM, .num = 7},
+		(instruction_t){BC_CALL, .num = 1},
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	});
+	test( rl->cl->comp_data->arg_count == 0, "variable count was not updated properly");
+	test( rl->cl->comp_data->var_count == 1, "variable count was not updated properly");
+	test( strcmp(rl->cl->comp_data->names[0], "fac") == 0, "variable name was not correctly added to the name list");
+	
+	atom_t *child_cl = rl->cl->literal_table.atoms[0];
+	test( child_cl != NULL, "no child lambda was compiled!");
+	test( child_cl->type == T_COMPILED_LAMBDA, "expected compiled lambda (type %d) got type %d", T_COMPILED_LAMBDA, child_cl->type);
+	test_instructions(&child_cl->bytecode, (instruction_t[]){
+		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
+		(instruction_t){BC_PUSH_NUM, .num = 1},
+		(instruction_t){BC_EQ},
+		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
+			// true case
+			(instruction_t){BC_PUSH_NUM, .num = 1},
+		(instruction_t){BC_JUMP, .jump_offset = 7},
+			// false case
+			// args for *
+				(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
+				(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},  // look up the fac runtime lambda itself
+				// args for fac
+					(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
+					(instruction_t){BC_PUSH_NUM, .num = 1},
+				(instruction_t){BC_SUB},
+				(instruction_t){BC_CALL, .num = 1},
+			(instruction_t){BC_MUL},
+		(instruction_t){BC_RETURN},
+		(instruction_t){BC_NULL}
+	}, "nested body");
+	test( child_cl->comp_data->arg_count == 1, "variable count was not updated properly");
+	test( child_cl->comp_data->var_count == 0, "variable count was not updated properly");
+}
+
 void test_quote(){
 	test_sample("(lambda () (quote c))", (instruction_t[]){
 		(instruction_t){BC_PUSH_LITERAL, .offset = 0, .index = 0},
@@ -248,6 +302,8 @@ int main(){
 	test_locals_in_own_frame();
 	test_nested_compilation();
 	test_env_lookup_on_unknown_vars();
+	
+	test_self_recursion();
 	
 	test_quote();
 	test_if();
