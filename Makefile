@@ -3,16 +3,15 @@ GCC_ARGS = -Wall -std=gnu99 -O2
 OBJ_FILES = gc.o memory.o reader.o printer.o logger.o eval.o buildins.o scanner.o output_stream.o bytecode_compiler.o bytecode_generator.o bytecode_interpreter.o
 LINKER_ARGS = -ldl -lgc
 
-run: tests/*.c repl
+run: tests/*.c lisp
 	cd tests; make tests
-	./repl
 
 # Main programs
 # The -rdynamic flag makes sure that the functions of the main programs are in their
 # ELFs .dynsym section. All symbols in this section can be used by shared libraries that
 # are loaded later on.
-repl: repl.c $(OBJ_FILES)
-	gcc $(GCC_ARGS) -rdynamic repl.c $(OBJ_FILES) $(LINKER_ARGS) -o repl
+lisp: lisp.c $(OBJ_FILES)
+	gcc $(GCC_ARGS) -rdynamic lisp.c $(OBJ_FILES) $(LINKER_ARGS) -o lisp
 
 
 # Modules

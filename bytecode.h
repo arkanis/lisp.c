@@ -134,7 +134,7 @@ typedef struct {
 
 #define BC_EQ				20
 
-// TODO
+/* TODO
 #define BC_LT				21
 #define BC_GT				22
 
@@ -142,8 +142,8 @@ typedef struct {
 #define BC_OR				24
 #define BC_NOT			25
 #define BC_XOR			26
+*/
 
-// DONE
 #define BC_CONS			27
 #define BC_FIRST			28
 #define BC_REST			29

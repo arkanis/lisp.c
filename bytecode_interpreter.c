@@ -10,7 +10,7 @@
 #include "eval.h"
 
 
-static inline void stack_reallocate_if_neccessary(stack_t *stack){
+void stack_reallocate_if_neccessary(stack_t *stack){
 	if ((*stack)->length > (*stack)->allocated){
 		(*stack)->allocated = (*stack)->length * 2;
 		*stack = gc_realloc(*stack, sizeof(size_t) * 2 + sizeof(atom_t) * (*stack)->allocated);
@@ -22,7 +22,7 @@ static inline void stack_reallocate_if_neccessary(stack_t *stack){
 	}
 }
 
-stack_t stack_new(size_t initial_allocated){
+inline stack_t stack_new(size_t initial_allocated){
 	stack_t stack = gc_alloc(sizeof(size_t) * 2 + sizeof(atom_t) * initial_allocated);
 	assert(stack != NULL);
 	stack->length = 0;
@@ -30,13 +30,13 @@ stack_t stack_new(size_t initial_allocated){
 	return stack;
 }
 
-void stack_destroy(stack_t *stack){
+inline void stack_destroy(stack_t *stack){
 	assert(stack != NULL && *stack != NULL);
 	gc_free(*stack);
 	*stack = NULL;
 }
 	
-void stack_push(stack_t *stack, atom_t *atom){
+inline void stack_push(stack_t *stack, atom_t *atom){
 	assert(stack != NULL && *stack != NULL);
 	assert(atom != NULL);
 	(*stack)->length++;
@@ -44,7 +44,7 @@ void stack_push(stack_t *stack, atom_t *atom){
 	(*stack)->atoms[(*stack)->length-1] = atom;
 }
 
-void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
+inline void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
 	assert(stack != NULL && *stack != NULL);
 	assert(atom != NULL);
 	(*stack)->length += n;
@@ -53,7 +53,7 @@ void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
 		(*stack)->atoms[(*stack)->length-1-i] = atom;
 }
 
-atom_t* stack_pop(stack_t *stack){
+inline atom_t* stack_pop(stack_t *stack){
 	assert(stack != NULL && *stack != NULL);
 	atom_t *val = (*stack)->atoms[(*stack)->length-1];
 	(*stack)->atoms[(*stack)->length-1] = NULL;
@@ -62,12 +62,12 @@ atom_t* stack_pop(stack_t *stack){
 	return val;
 }
 
-atom_t* stack_peek(stack_t *stack){
+inline atom_t* stack_peek(stack_t *stack){
 	assert(stack != NULL && *stack != NULL);
 	return (*stack)->atoms[(*stack)->length-1];
 }
 
-void stack_pop_n(stack_t *stack, size_t n){
+inline void stack_pop_n(stack_t *stack, size_t n){
 	assert(stack != NULL && *stack != NULL);
 	for(size_t i = 0; i < n; i++)
 		(*stack)->atoms[(*stack)->length-1-i] = NULL;

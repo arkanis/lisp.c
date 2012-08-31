@@ -24,7 +24,6 @@ void *gc_realloc(void *ptr, size_t size){
 	/*
 	if (size > 100)
 		printf("gc_realloc %zu bytes\n", size);
-	assert(size < 10 * 1024 * 1024);
 	*/
 	return GC_REALLOC(ptr, size);
 }
@@ -34,6 +33,5 @@ void gc_free(void *ptr){
 }
 
 size_t gc_heap_size(){
-	GC_gcollect();
 	return GC_get_heap_size();
 }
