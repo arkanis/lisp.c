@@ -20,7 +20,7 @@ atom_t* buildin_define(atom_t *args, env_t *env){
 	
 	atom_t *name_atom = args->first;
 	atom_t *value_atom = eval_atom(args->rest->first, env);
-	env_set(env, name_atom->sym, value_atom);
+	env_def(env, name_atom->sym, value_atom);
 	return value_atom;
 }
 
@@ -36,7 +36,7 @@ void compile_define(atom_t *cl, atom_t *args, env_t *env){
 	cl->comp_data->var_count++;
 	size_t names_length = cl->comp_data->arg_count + cl->comp_data->var_count;
 	cl->comp_data->names = gc_realloc(cl->comp_data->names, names_length * sizeof(cl->comp_data->names[0]));
-	cl->comp_data->names[names_length-1] = strdup(name_atom->sym);
+	cl->comp_data->names[names_length-1] = name_atom->sym;
 	
 	// Compile value expr and store the initial value afterwards
 	bcc_compile_expr(cl, args->rest->first, env);
@@ -44,9 +44,61 @@ void compile_define(atom_t *cl, atom_t *args, env_t *env){
 }
 
 
+atom_t* set_eval(atom_t *args, env_t *env){
+	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL)
+		return warn("set requires two arguments and the first one has to be a symbol"), nil_atom();
+	
+	atom_t *name_atom = args->first;
+	atom_t *value_atom = eval_atom(args->rest->first, env);
+	env_set(env, name_atom->sym, value_atom);
+	return value_atom;
+}
+
+void set_compile(atom_t *cl, atom_t *args, env_t *env){
+	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("set requires two arguments and the first one has to be a symbol");
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		return;
+	}
+	
+	atom_t *name_atom = args->first;
+	atom_t *value_expr = args->rest->first;
+	
+	// Compile the value expr
+	bcc_compile_expr(cl, value_expr, env);
+	
+	// Search for the name in the variable lists
+	ssize_t idx;
+	size_t scope_offset = 0;
+	atom_t *current_cl = cl;
+	do {
+		if ( (idx = bcc_symbol_in_names(current_cl, name_atom)) != -1 ) {
+			// symbol is known in current scope (lambda)
+			if (idx < current_cl->comp_data->arg_count) {
+				// symbol identifies an argument, can't set args!
+				warn("set: can not change the value of arguments!");
+			} else {
+				// symbol identifies a local variable, generate a save-var instruction
+				idx = idx - current_cl->comp_data->arg_count;
+				bcg_gen(&cl->bytecode, (instruction_t){BC_SAVE_VAR, .index = idx, .offset = scope_offset});
+			}
+			break;
+		}
+		scope_offset++;
+		current_cl = current_cl->comp_data->parent;
+	} while(current_cl);
+	
+	if (current_cl == NULL){
+		// Symbol not found in any argument or variable lists of all parents
+		warn("set: can't find variable %s!", name_atom->sym);
+		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+	}
+}
+
+
 atom_t* buildin_if(atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL)
-		return warn("if requires exactly tree arguments"), nil_atom();
+		return warn("if requires exactly three arguments"), nil_atom();
 	
 	atom_t *cond = eval_atom(args->first, env);
 	if (cond->type == T_TRUE)
@@ -57,7 +109,7 @@ atom_t* buildin_if(atom_t *args, env_t *env){
 
 void compile_if(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL){
-		warn("if requires exactly tree arguments");
+		warn("if requires exactly three arguments");
 		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
 		return;
 	}
@@ -488,28 +540,37 @@ atom_t* buildin_print(atom_t *args, env_t *env){
 	return nil_atom();
 }
 
+atom_t* gc_heap_size_eval(atom_t *args, env_t *env){
+	return num_atom_alloc(gc_heap_size());
+}
+
+
 void register_buildins_in(env_t *env){
-	env_set(env, "define", buildin_atom_alloc(buildin_define, compile_define));
-	env_set(env, "if", buildin_atom_alloc(buildin_if, compile_if));
-	env_set(env, "quote", buildin_atom_alloc(buildin_quote, compile_quote));
-	env_set(env, "begin", buildin_atom_alloc(buildin_begin, compile_begin));
-	env_set(env, "lambda", buildin_atom_alloc(buildin_lambda, compile_lambda));
+	env_def(env, "define", buildin_atom_alloc(buildin_define, compile_define));
+	env_def(env, "set!", buildin_atom_alloc(set_eval, set_compile));
 	
-	env_set(env, "cons", buildin_atom_alloc(buildin_cons, compile_cons));
-	env_set(env, "first", buildin_atom_alloc(buildin_first, compile_first));
-	env_set(env, "rest", buildin_atom_alloc(buildin_rest, compile_rest));
+	env_def(env, "if", buildin_atom_alloc(buildin_if, compile_if));
+	env_def(env, "quote", buildin_atom_alloc(buildin_quote, compile_quote));
+	env_def(env, "begin", buildin_atom_alloc(buildin_begin, compile_begin));
+	env_def(env, "lambda", buildin_atom_alloc(buildin_lambda, compile_lambda));
 	
-	env_set(env, "+", buildin_atom_alloc(buildin_plus, compile_plus));
-	env_set(env, "-", buildin_atom_alloc(buildin_minus, compile_minus));
-	env_set(env, "*", buildin_atom_alloc(buildin_multiply, compile_multiply));
-	env_set(env, "/", buildin_atom_alloc(buildin_divide, compile_divide));
+	env_def(env, "cons", buildin_atom_alloc(buildin_cons, compile_cons));
+	env_def(env, "first", buildin_atom_alloc(buildin_first, compile_first));
+	env_def(env, "rest", buildin_atom_alloc(buildin_rest, compile_rest));
 	
-	env_set(env, "=", buildin_atom_alloc(buildin_equal, compile_equal));
+	env_def(env, "+", buildin_atom_alloc(buildin_plus, compile_plus));
+	env_def(env, "-", buildin_atom_alloc(buildin_minus, compile_minus));
+	env_def(env, "*", buildin_atom_alloc(buildin_multiply, compile_multiply));
+	env_def(env, "/", buildin_atom_alloc(buildin_divide, compile_divide));
 	
-	env_set(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
-	env_set(env, "env_self", buildin_atom_alloc(buildin_env_self, NULL));
-	env_set(env, "env_new", buildin_atom_alloc(buildin_env_new, NULL));
-	env_set(env, "env_get", buildin_atom_alloc(buildin_env_get, NULL));
-	env_set(env, "env_set", buildin_atom_alloc(buildin_env_set, NULL));
-	env_set(env, "print", buildin_atom_alloc(buildin_print, NULL));
+	env_def(env, "=", buildin_atom_alloc(buildin_equal, compile_equal));
+	
+	env_def(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
+	env_def(env, "env_self", buildin_atom_alloc(buildin_env_self, NULL));
+	env_def(env, "env_new", buildin_atom_alloc(buildin_env_new, NULL));
+	env_def(env, "env_get", buildin_atom_alloc(buildin_env_get, NULL));
+	env_def(env, "env_set", buildin_atom_alloc(buildin_env_set, NULL));
+	
+	env_def(env, "print", buildin_atom_alloc(buildin_print, NULL));
+	env_def(env, "gc_heap_size", buildin_atom_alloc(gc_heap_size_eval, NULL));
 }

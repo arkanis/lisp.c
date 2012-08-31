@@ -11,28 +11,31 @@ void test_env_get_and_set(){
 	
 	test( env_get(env, "does_not_exists") == NULL, "expected a NULL pointer for an undefined binding");
 	
-	env_set(env, "foo", true_atom());
-	test( env_get(env, "foo") == true_atom(), "set and lookup in env failed");
+	env_def(env, "foo", true_atom());
+	test( env_get(env, "foo") == true_atom(), "def and lookup in env failed");
 	
-	env_set(env, "bar", false_atom());
-	env_set(env, "nil_atom", nil_atom());
+	env_set(env, "foo", false_atom());
+	test( env_get(env, "foo") == false_atom(), "set and lookup in env failed");
 	
-	test( env_get(env, "bar") == false_atom(), "second set and lookup in env failed");
-	test( env_get(env, "nil_atom") == nil_atom(), "third set and lookup in env failed");
+	env_def(env, "bar", false_atom());
+	env_def(env, "nil_atom", nil_atom());
+	
+	test( env_get(env, "bar") == false_atom(), "second def and lookup in env failed");
+	test( env_get(env, "nil_atom") == nil_atom(), "third def and lookup in env failed");
 }
 
 void test_nested_env(){
 	env_t *env = env_alloc(NULL);
 	
-	env_set(env, "foo", true_atom());
+	env_def(env, "foo", true_atom());
 	test( env_get(env, "foo") == true_atom(), "direct lookup in env failed");
 	
 	env_t *nested_env = env_alloc(env);
 	test( env_get(nested_env, "foo") == true_atom(), "nested env lookup failed");
 	
-	env_set(nested_env, "nested", true_atom());
-	test( env_get(nested_env, "nested") == true_atom(), "set and lookup in nested env failed");
-	test( env_get(env, "nested") == NULL, "nested set leaked into the parent env");
+	env_def(nested_env, "nested", true_atom());
+	test( env_get(nested_env, "nested") == true_atom(), "def and lookup in nested env failed");
+	test( env_get(env, "nested") == NULL, "nested def leaked into the parent env");
 }
 
 void test_eval_lowlevel(){
@@ -51,7 +54,7 @@ void test_eval_lowlevel(){
 	test( eval_atom(atom, env) == atom , "string atoms should eval to themselfs");
 	
 	// Test symbol evaluation
-	env_set(env, "test", true_atom());
+	env_def(env, "test", true_atom());
 	test( eval_atom(sym_atom_alloc("test"), env) == true_atom(), "symbol evaluation failed to look up the bound value");
 	
 	// Test buildin evaluation
@@ -80,13 +83,13 @@ char *language_buildin_samples[] = {
 	
 	"(define true_case_evaled false)", "false",
 	"(define false_case_evaled false)", "false",
-	"(if true (define true_case_evaled true) (define false_case_evaled true))", "true",
+	"(if true (set! true_case_evaled true) (set! false_case_evaled true))", "true",
 	"true_case_evaled", "true",
 	"false_case_evaled", "false",
 	
-	"(define true_case_evaled false)", "false",
-	"(define false_case_evaled false)", "false",
-	"(if false (define true_case_evaled true) (define false_case_evaled true))", "true",
+	"(set! true_case_evaled false)", "false",
+	"(set! false_case_evaled false)", "false",
+	"(if false (set! true_case_evaled true) (set! false_case_evaled true))", "true",
 	"true_case_evaled", "false",
 	"false_case_evaled", "true",
 	
@@ -99,7 +102,7 @@ char *language_buildin_samples[] = {
 	"'(foo 1 2)", "(foo 1 2)",
 	
 	"(define expression_evaled false)", "false",
-	"(begin 1 (define expression_evaled true) 3)", "3",
+	"(begin 1 (set! expression_evaled true) 3)", "3",
 	"expression_evaled", "true",
 	
 	"(cons 1 2)", "(1 . 2)",

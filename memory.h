@@ -167,6 +167,7 @@ scope_p scope_env_alloc(env_t *env);
 // Environement functions
 env_t* env_alloc(env_t *parent);
 atom_t* env_get(env_t *env, char *key);
+void env_def(env_t *env, char *key, atom_t *value);
 void env_set(env_t *env, char *key, atom_t *value);
 
 #endif

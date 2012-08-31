@@ -19,9 +19,10 @@ void *gc_realloc(void *ptr, size_t size){
 }
 
 void gc_free(void *ptr){
-	// Do nothing for now
+	GC_FREE(ptr);
 }
 
 size_t gc_heap_size(){
+	//GC_gcollect();
 	return GC_get_heap_size();
 }

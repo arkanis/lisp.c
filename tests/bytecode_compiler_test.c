@@ -293,7 +293,7 @@ int main(){
 	memory_init();
 	env = env_alloc(NULL);
 	register_buildins_in(env);
-	env_set(env, "__compile_lambdas", true_atom());
+	env_def(env, "__compile_lambdas", true_atom());
 	
 	test_self_evaling_atoms();
 	test_nums_in_literal_tables();

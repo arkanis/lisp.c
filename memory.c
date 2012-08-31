@@ -190,9 +190,26 @@ atom_t* env_get(env_t *env, char *key){
 	return env_get(env->parent, key);
 }
 
-void env_set(env_t *env, char *key, atom_t *value){
+void env_def(env_t *env, char *key, atom_t *value){
 	if (env == NULL){
 		warn("Got NULL pointer as environment");
+		return;
+	}
+	
+	env->length++;
+	env->bindings = gc_realloc(env->bindings, env->length * sizeof(env_binding_t));
+	
+	env->bindings[env->length-1] = (env_binding_t){
+		.key = key,
+		.value = value
+	};
+	
+	return;
+}
+
+void env_set(env_t *env, char *key, atom_t *value){
+	if (env == NULL){
+		warn("env_set: no binding found for %s", key);
 		return;
 	}
 	
@@ -203,13 +220,5 @@ void env_set(env_t *env, char *key, atom_t *value){
 		}
 	}
 	
-	env->length++;
-	env->bindings = gc_realloc(env->bindings, env->length * sizeof(env_binding_t));
-	
-	env->bindings[env->length-1] = (env_binding_t){
-		.key = strdup(key),
-		.value = value
-	};
-	
-	return;
+	return env_set(env->parent, key, value);
 }

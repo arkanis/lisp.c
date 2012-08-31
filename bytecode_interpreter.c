@@ -34,6 +34,7 @@ void stack_destroy(stack_t *stack){
 	
 void stack_push(stack_t *stack, atom_t *atom){
 	assert(stack != NULL && *stack != NULL);
+	assert(atom != NULL);
 	(*stack)->length++;
 	stack_reallocate_if_neccessary(stack);
 	(*stack)->atoms[(*stack)->length-1] = atom;
@@ -41,6 +42,7 @@ void stack_push(stack_t *stack, atom_t *atom){
 
 void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
 	assert(stack != NULL && *stack != NULL);
+	assert(atom != NULL);
 	(*stack)->length += n;
 	stack_reallocate_if_neccessary(stack);
 	for (size_t i = 0; i < n; i++)
@@ -50,6 +52,7 @@ void stack_push_n(stack_t *stack, atom_t *atom, size_t n){
 atom_t* stack_pop(stack_t *stack){
 	assert(stack != NULL && *stack != NULL);
 	atom_t *val = (*stack)->atoms[(*stack)->length-1];
+	(*stack)->atoms[(*stack)->length-1] = NULL;
 	(*stack)->length--;
 	stack_reallocate_if_neccessary(stack);
 	return val;
@@ -62,6 +65,8 @@ atom_t* stack_peek(stack_t *stack){
 
 void stack_pop_n(stack_t *stack, size_t n){
 	assert(stack != NULL && *stack != NULL);
+	for(size_t i = 0; i < n; i++)
+		(*stack)->atoms[(*stack)->length-1-i] = NULL;
 	(*stack)->length -= n;
 	stack_reallocate_if_neccessary(stack);
 }
@@ -234,7 +239,13 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				assert(key->type == T_SYM);
 				
 				if (ip->op == BC_PUSH_FROM_ENV) {
-					stack_push(&interp->stack, env_get(target_env, key->sym));
+					atom_t *value = env_get(target_env, key->sym);
+					if (value != NULL) {
+						stack_push(&interp->stack, value);
+					} else {
+						warn("BC_PUSH_FROM_ENV: no binding for %s in env %p", key->sym, target_env);
+						stack_push(&interp->stack, nil_atom());
+					}
 				} else {
 					atom_t *value = stack_peek(&interp->stack);
 					check_atom_for_escaped_scope(value);
@@ -306,7 +317,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 							// Bind lambda args
 							atom_t *arg_name_pair = func->args, *arg_value_pair = arg_atoms;
 							while(arg_name_pair->type == T_PAIR && arg_value_pair->type == T_PAIR){
-								env_set(lambda_env, arg_name_pair->first->sym, arg_value_pair->first);
+								env_def(lambda_env, arg_name_pair->first->sym, arg_value_pair->first);
 								arg_name_pair = arg_name_pair->rest;
 								arg_value_pair = arg_value_pair->rest;
 							}

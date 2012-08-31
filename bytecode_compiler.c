@@ -12,7 +12,6 @@
 
 
 void compile_statement(atom_t *cl_atom, atom_t *lambda_args, atom_t *ast, env_t *env);
-ssize_t symbol_in_names(atom_t *lambda_args, atom_t *symbol);
 
 /**
  * Compiles an expression into a compiled lamba atom.
@@ -70,7 +69,7 @@ void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 			size_t scope_offset = 0;
 			atom_t *current_cl = cl_atom;
 			do {
-				if ( (idx = symbol_in_names(current_cl, expr)) != -1 ) {
+				if ( (idx = bcc_symbol_in_names(current_cl, expr)) != -1 ) {
 					// symbol is known in current scope (lambda)
 					if (idx < current_cl->comp_data->arg_count) {
 						// symbol identifies an argument, generate a push-arg instruction
@@ -129,7 +128,7 @@ size_t bcc_add_atom_to_literal_table(atom_t *cl_atom, atom_t *subject){
 	return cl_atom->literal_table.length - 1;
 }
 
-ssize_t symbol_in_names(atom_t *cl, atom_t *symbol){
+ssize_t bcc_symbol_in_names(atom_t *cl, atom_t *symbol){
 	assert(symbol->type == T_SYM);
 	for(size_t i = 0; i < cl->comp_data->arg_count + cl->comp_data->var_count; i++){
 		if ( strcmp(cl->comp_data->names[i], symbol->sym) == 0 )

@@ -38,7 +38,7 @@ int main(int argc, char **argv){
 	env_t *env = env_alloc(NULL);
 	
 	register_buildins_in(env);
-	env_set(env, "__compile_lambdas", opts.compile ? true_atom() : false_atom());
+	env_def(env, "__compile_lambdas", opts.compile ? true_atom() : false_atom());
 	
 	if (opts.input_file == NULL)
 		return repl(env, &opts);

@@ -33,7 +33,7 @@ void test_custom_func(){
 	}
 	
 	custom_atom = custom_atom_alloc(1, "some random data", custom_func);
-	env_set(env, "custom", custom_atom);
+	env_def(env, "custom", custom_atom);
 	
 	scanner_t scan = scan_open_string("(custom 1 2)");
 	atom_t *ast = read_atom(&scan);

@@ -264,6 +264,8 @@ void test_function_calls(){
 
 
 void test_env_instructions(){
+	env_def(env, "from_bci", nil_atom());
+	
 	atom_t *atom = num_atom_alloc(42);
 	test_sample((instruction_t[]){
 		(instruction_t){BC_PUSH_LITERAL, .index = 0},
