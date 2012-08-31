@@ -113,11 +113,11 @@
 
 <p>The tests use a minimalistic test system, therefore the displayed number of tests is more or less equal to the <code>asserts</code> of normal test systems (assert already has a different meaning in C). An extra output stream and scanner hat to be written to make input and output testable.</p>
 
-<p>The test cases contain large amout of code. Especially the bytecode interpreter and compiler test cases might be of interest.</p>
+<p>The test cases contain large amount of code. Especially the bytecode interpreter and compiler test cases might be of interest.</p>
 
 <h1>Loading shared objects</h1>
 
-<p>A sample shared object can be found in <code>mod_hello.c</code>. It uses the init function to define a new builtin atom (named <code>test</code>) in the current execution environement. This new builtin just prints "test run".</p>
+<p>A sample shared object can be found in <code>mod_hello.c</code>. It uses the init function to define a new builtin atom (named <code>test</code>) in the current execution environment. This new builtin just prints "test run".</p>
 
 <p>The shared object can be compiled using <code>make mod_hello</code>. To load it into the interpreter:</p>
 
@@ -133,7 +133,7 @@ nil
 
 <h1>Performance</h1>
 
-<p>To compare the performance between the AST and bytecode interpreter the Fibonacci number calcuation sample was used. It calcuates the 30th Fibonacci number. To measure the CPU time the <code>time</code> function of zsh was used (basically the same as the <code>time</code> program). The interpreter was compiled with <code>-O2</code> settings for optimization.</p>
+<p>To compare the performance between the AST and bytecode interpreter the Fibonacci number calculation sample was used. It calculates the 30th Fibonacci number. To measure the CPU time the <code>time</code> function of zsh was used (basically the same as the <code>time</code> program). The interpreter was compiled with <code>-O2</code> settings for optimization.</p>
 
 <ul>
 <li><code>time ./lisp samples/fib.l</code> → cpu 1.819s</li>
@@ -150,7 +150,7 @@ nil
 <li><code>time ruby1.9.1 samples/fib.rb</code> → cpu 0.371s (Bytecode VM)</li>
 </ul>
 
-<p>Therefore the current lisp.c bytecode VM is about as fast as the old Ruby 1.8 AST interpereter which is still used for large amounts of Ruby code. However this is just one test case and one specific algorithm with strong emphasis on function calling overhead.</p>
+<p>Therefore the current lisp.c bytecode VM is about as fast as the old Ruby 1.8 AST interpreter which is still used for large amounts of Ruby code. However this is just one test case and one specific algorithm with strong emphasis on function calling overhead.</p>
 
 <h1>Known problems</h1>
 
@@ -178,21 +178,21 @@ nil
 <li>No symbol table is used right now. All symbol comarisons are done via string comparison.</li>
 <li>The bytecode interpreter is not optimized right now. Several allocations can occur during lambda execution.</li>
 <li>The atoms are not stored on the stack. Therefore each atom allocation adds some overhead.</li>
-<li>Due to complation into different object files most of the code called from the interpreter loop can not be inlined easily (would require link time optimization).</li>
+<li>Due to compilation into different object files most of the code called from the interpreter loop can not be inlined easily (would require link time optimization).</li>
 </ul>
 
 <p>Bytecode VM:</p>
 
 <ul>
 <li>The bytecode VM is more general than it needs to be for Lisp. The instructions allow combinations and actions that can not be expressed in Lisp (e.g. loading a literal from an outer scope).</li>
-<li>Lambda compilation and execution is more complex due to these extended possibilities. For example it is possible to instantiate a compiled lambda multipe times via the bytecode and each instance individually keeps track of it's stack dependencies and frames. Since lambdas are literals in Lisp and these literals can not be accessed from other scopes this functionality can not be used in Lisp.</li>
-<li>This adds quite some overhead und ugliness to the entire code base (as well as a week of corner case chasing). Unfortunately there was no more time left for a proper cleanup and refactoring.</li>
+<li>Lambda compilation and execution is more complex due to these extended possibilities. For example it is possible to instantiate a compiled lambda multiple times via the bytecode and each instance individually keeps track of it's stack dependencies and frames. Since lambdas are literals in Lisp and these literals can not be accessed from other scopes this functionality can not be used in Lisp.</li>
+<li>This adds quite some overhead and ugliness to the entire code base (as well as a week of corner case chasing). Unfortunately there was no more time left for a proper cleanup and refactoring.</li>
 <li>Pointers to the bytecode interpreter stack are somehow leaking. Therefore the GC never frees them. This is especially visible in cases with extreme recursion depth (e.g. 1 000 000) as the stack becomes quite large. <code>valgrind</code> and <code>callgrind</code> go haywire within the gc library functions and just report a seg fault on initialization. The <code>gc_test.l</code> sample can be used to provoke that case.</li>
 </ul>
 
 <h1>Language reference</h1>
 
-<p>The lisp.c interpreter implements onyl a subset of Lisp. The following functions are supported.</p>
+<p>The lisp.c interpreter implements only a subset of Lisp. The following functions are supported.</p>
 
 <p>Core functions:</p>
 
@@ -249,17 +249,17 @@ nil
 
 <ul>
 <li>32 bit unsigned index: Used to index into literal tables, local variables and arguments</li>
-<li>32 bit num: Used to embed small numbers directly into the instruction. Larger numbers are added to the literal tabel and then loaded. Also used by CALL instructions for the number of function arguments on the stack.</li>
+<li>32 bit num: Used to embed small numbers directly into the instruction. Larger numbers are added to the literal table and then loaded. Also used by CALL instructions for the number of function arguments on the stack.</li>
 <li>32 bit jump_offset: Offset for jump instructions. It's signed to also support jumping upwards (negative offset), e.g. to compile while loops into bytecode.</li>
 </ul>
 
-<p>The instruction structure can be refactored into 32 bits without imposing to harsh limits. 2^16 lambda arguments and nested scopes are still more than enough. A jump range of 2^15 instructions (32k of code) up and down is also unlikely to cause problems, even for large amouts of generated Lisp code. However no more time was available for that refactoring.</p>
+<p>The instruction structure can be refactored into 32 bits without imposing to harsh limits. 2^16 lambda arguments and nested scopes are still more than enough. A jump range of 2^15 instructions (32k of code) up and down is also unlikely to cause problems, even for large amounts of generated Lisp code. However no more time was available for that refactoring.</p>
 
 <p>Basic instructions:</p>
 
 <ul>
 <li><code>BC_PUSH_NIL</code>, <code>BC_PUSH_TRUE</code>, <code>BC_PUSH_FALSE</code>: These instructions push the corresponding singleton atom on the stack. Instruction properties used: none.</li>
-<li><code>BC_PUSH_NUM</code>: Pushes a numer on top of the stack. The value is stored as part of the instruction. Instruction properties used: num.</li>
+<li><code>BC_PUSH_NUM</code>: Pushes a number on top of the stack. The value is stored as part of the instruction. Instruction properties used: num.</li>
 <li><code>BC_PUSH_LITERAL</code>: Pushes an atom from the literal table on top of the stack. Used for all kinds of atoms and larger numbers that don't fit into the instructions num property. Instruction properties used:
 
 <ul>
@@ -310,13 +310,13 @@ nil
 <p>Function generation and calling instructions:</p>
 
 <ul>
-<li><code>BC_LAMBDA</code>: Looks up a compiled lambda in the literal table and creates a runtime lambda for it. This associates a compiled lambda (static compiletime stuff) with a reference to the living stacks that are needed for proper argument and local lookups. The result can be seen as an living instance of the compiled lambda. The runtime lambda is pushed on top of the stack. Instruction properties used:
+<li><code>BC_LAMBDA</code>: Looks up a compiled lambda in the literal table and creates a runtime lambda for it. This associates a compiled lambda (static compile time stuff) with a reference to the living stacks that are needed for proper argument and local lookups. The result can be seen as an living instance of the compiled lambda. The runtime lambda is pushed on top of the stack. Instruction properties used:
 
 <ul>
 <li>frame_offset (number of parents to got up for the literal table)</li>
 <li>index (entry of the literal table to push on the stack)</li>
 </ul></li>
-<li><code>BC_CALL</code>: Takes an executable atom (lambda, runtime lambda or buildin) and its arguments from the stack and calls it. The executable atom have to be pushed on the stack first, followed by its arguments. The number of arguments is encoded in the <code>num</code> property of the CALL instruction. Instruction properties used:
+<li><code>BC_CALL</code>: Takes an executable atom (lambda, runtime lambda or builtin) and its arguments from the stack and calls it. The executable atom have to be pushed on the stack first, followed by its arguments. The number of arguments is encoded in the <code>num</code> property of the CALL instruction. Instruction properties used:
 
 <ul>
 <li>num (number of arguments pushed on the stack)</li>
@@ -337,7 +337,7 @@ nil
 <p>Arithmetic and comparison instructions:</p>
 
 <ul>
-<li><code>BC_ADD</code>, <code>BC_SUB</code>, <code>BC_MUL</code>, <code>BC_DIV</code>: Pops two values from the stack and performes the matching arithmetic on them (+, -, *, /). The result is pushed on the stack. Instruction properties used: none.</li>
+<li><code>BC_ADD</code>, <code>BC_SUB</code>, <code>BC_MUL</code>, <code>BC_DIV</code>: Pops two values from the stack and performs the matching arithmetic on them (+, -, *, /). The result is pushed on the stack. Instruction properties used: none.</li>
 <li><code>BC_EQ</code>: Pops two values from the stack. If these values are equal the true atom is pushed on the stack, otherwise the false atom is pushed on the stack. Only works with numbers right now. Instruction properties used: none.</li>
 </ul>
 

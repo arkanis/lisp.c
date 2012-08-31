@@ -1,7 +1,7 @@
 // Use the Boehm-Demers-Weiser conservative garbage collector for now.
 // This file has to be included before the local gc.h. Otherwise the macros will
 // not be expanded properly (no idea why).
-#include <gc.h>
+#include <gc/gc.h>
 #include <stdio.h>
 #include <assert.h>
 
