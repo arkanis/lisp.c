@@ -452,67 +452,8 @@ atom_t* buildin_mod_load(atom_t *args, env_t *env){
 }
 
 //
-// Environments
+// Misc
 //
-
-atom_t* buildin_env_self(atom_t *args, env_t *env){
-	return env_atom_alloc(env);
-}
-
-atom_t* buildin_env_new(atom_t *args, env_t *env){
-	atom_t *parent_env_atom = eval_atom(args->first, env);
-	env_t *parent_env;
-	
-	if (parent_env_atom->type == T_ENV)
-		parent_env = parent_env_atom->env;
-	else if (parent_env_atom->type != T_NIL)
-		warn("The parent environment has to be an environment atom");
-	
-	return env_atom_alloc( env_alloc(parent_env) );
-}
-
-atom_t* buildin_env_get(atom_t *args, env_t *env){
-	atom_t *env_atom = eval_atom(args->first, env);
-	atom_t *key_atom = eval_atom(args->rest->first, env);
-	
-	if (env_atom->type != T_ENV){
-		warn("env_get only works with environments");
-		return nil_atom();
-	}
-	
-	atom_t* value_atom = NULL;
-	if (key_atom->type == T_SYM)
-		value_atom = env_get(env_atom->env, key_atom->sym);
-	else if (key_atom->type == T_STR)
-		value_atom = env_get(env_atom->env, key_atom->str);
-	else
-		warn("env_get needs a symbol or string as key");
-	
-	return (value_atom != NULL) ? value_atom : nil_atom();
-}
-
-atom_t* buildin_env_set(atom_t *args, env_t *env){
-	atom_t *env_atom = eval_atom(args->first, env);
-	atom_t *key_atom = eval_atom(args->rest->first, env);
-	atom_t *value_atom = eval_atom(args->rest->rest->first, env);
-	
-	if (env_atom->type != T_ENV){
-		warn("env_set only works with environments");
-		return nil_atom();
-	}
-	
-	if (key_atom->type == T_SYM)
-		env_set(env_atom->env, key_atom->sym, value_atom);
-	else if (key_atom->type == T_STR)
-		env_set(env_atom->env, key_atom->str, value_atom);
-	else
-		warn("env_set needs a symbol or string as key");
-	
-	return env_atom;
-}
-
-
-
 
 atom_t* buildin_print(atom_t *args, env_t *env){
 	atom_t *atom = eval_atom(args->first, env);
@@ -566,10 +507,6 @@ void register_buildins_in(env_t *env){
 	env_def(env, "=", buildin_atom_alloc(buildin_equal, compile_equal));
 	
 	env_def(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
-	env_def(env, "env_self", buildin_atom_alloc(buildin_env_self, NULL));
-	env_def(env, "env_new", buildin_atom_alloc(buildin_env_new, NULL));
-	env_def(env, "env_get", buildin_atom_alloc(buildin_env_get, NULL));
-	env_def(env, "env_set", buildin_atom_alloc(buildin_env_set, NULL));
 	
 	env_def(env, "print", buildin_atom_alloc(buildin_print, NULL));
 	env_def(env, "gc_heap_size", buildin_atom_alloc(gc_heap_size_eval, NULL));

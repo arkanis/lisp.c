@@ -61,11 +61,6 @@
 
 <p>On an Debian based Linux system (e.g. Ubuntu Linux) the packages can be installed with the following command:</p>
 
-<pre><code>make dependencies
-</code></pre>
-
-<p>or directly with</p>
-
 <pre><code>sudo apt-get install gcc make libgc1c2 libgc-dev
 </code></pre>
 
@@ -119,6 +114,22 @@
 <p>The tests use a minimalistic test system, therefore the displayed number of tests is more or less equal to the <code>asserts</code> of normal test systems (assert already has a different meaning in C). An extra output stream and scanner hat to be written to make input and output testable.</p>
 
 <p>The test cases contain large amout of code. Especially the bytecode interpreter and compiler test cases might be of interest.</p>
+
+<h1>Loading shared objects</h1>
+
+<p>A sample shared object can be found in <code>mod_hello.c</code>. It uses the init function to define a new builtin atom (named <code>test</code>) in the current execution environement. This new builtin just prints "test run".</p>
+
+<p>The shared object can be compiled using <code>make mod_hello</code>. To load it into the interpreter:</p>
+
+<pre><code>$ ./lisp
+&gt; (mod_load "./mod_hello.so")
+nil
+&gt; (test)
+test run
+nil
+</code></pre>
+
+<p>The "./" in the file name is important. Otherwise <code>dlopen</code> will search the system directories for the <code>so</code> file. With the "./" in front it searches only in the current directory.</p>
 
 <h1>Performance</h1>
 

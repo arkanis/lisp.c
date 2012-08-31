@@ -32,10 +32,6 @@ The [Boehm-Demers-Weiser conservative garbage collector][1] is used right now. U
 
 On an Debian based Linux system (e.g. Ubuntu Linux) the packages can be installed with the following command:
 
-	make dependencies
-
-or directly with
-
 	sudo apt-get install gcc make libgc1c2 libgc-dev
 
 This has been tested on Ubuntu Linux 12.04.
@@ -54,6 +50,7 @@ This has been tested on Ubuntu Linux 12.04.
   - `./lisp` to enter interactive console, ctrl + D to exit.
   - `./lisp -h` shows a small option help
 
+
 # Using the lisp.c interpreter
 
 The lisp.c interpreter can be run in different modes:
@@ -71,6 +68,7 @@ The lisp.c interpreter can also be used for shell scripting via the hash bang li
 
 The full path is required and the script needs execute permissions. `samples/fac.l` uses the hash-bang line but the path must be updated to your own location to the `lisp` binary.
 
+
 # Running the tests
 
 Most parts of the interpreter, compiler and VM are covered by test cases. These can be explicitly run by changing into the `tests` directory and executing `make`.
@@ -78,6 +76,22 @@ Most parts of the interpreter, compiler and VM are covered by test cases. These 
 The tests use a minimalistic test system, therefore the displayed number of tests is more or less equal to the `asserts` of normal test systems (assert already has a different meaning in C). An extra output stream and scanner hat to be written to make input and output testable.
 
 The test cases contain large amout of code. Especially the bytecode interpreter and compiler test cases might be of interest.
+
+
+# Loading shared objects
+
+A sample shared object can be found in `mod_hello.c`. It uses the init function to define a new builtin atom (named `test`) in the current execution environement. This new builtin just prints "test run".
+
+The shared object can be compiled using `make mod_hello`. To load it into the interpreter:
+
+	$ ./lisp
+	> (mod_load "./mod_hello.so")
+	nil
+	> (test)
+	test run
+	nil
+
+The "./" in the file name is important. Otherwise `dlopen` will search the system directories for the `so` file. With the "./" in front it searches only in the current directory.
 
 # Performance
 
