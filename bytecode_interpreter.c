@@ -15,6 +15,10 @@ static inline void stack_reallocate_if_neccessary(stack_t *stack){
 		(*stack)->allocated = ((*stack)->allocated == 0) ? 2 : (*stack)->allocated * 2;
 		*stack = gc_realloc(*stack, sizeof(size_t) * 2 + sizeof(atom_t) * (*stack)->allocated);
 		assert((*stack)->length <= (*stack)->allocated);
+	} else if ((*stack)->length < (*stack)->allocated / 3) {
+		(*stack)->allocated /= 2;
+		*stack = gc_realloc(*stack, sizeof(size_t) * 2 + sizeof(atom_t) * (*stack)->allocated);
+		assert((*stack)->length <= (*stack)->allocated);
 	}
 }
 

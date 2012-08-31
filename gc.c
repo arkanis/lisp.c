@@ -2,6 +2,8 @@
 // This file has to be included before the local gc.h. Otherwise the macros will
 // not be expanded properly (no idea why).
 #include <gc.h>
+#include <stdio.h>
+#include <assert.h>
 
 #include "gc.h"
 
@@ -11,10 +13,19 @@ void gc_init(){
 }
 
 void *gc_alloc(size_t size){
+	/*
+	if (size > 100)
+		printf("gc_alloc %zu bytes\n", size);
+	*/
 	return GC_MALLOC(size);
 }
 
 void *gc_realloc(void *ptr, size_t size){
+	/*
+	if (size > 100)
+		printf("gc_realloc %zu bytes\n", size);
+	assert(size < 10 * 1024 * 1024);
+	*/
 	return GC_REALLOC(ptr, size);
 }
 
@@ -23,6 +34,6 @@ void gc_free(void *ptr){
 }
 
 size_t gc_heap_size(){
-	//GC_gcollect();
+	GC_gcollect();
 	return GC_get_heap_size();
 }
