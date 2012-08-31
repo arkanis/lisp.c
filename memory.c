@@ -16,6 +16,7 @@ atom_t* atom_alloc(uint8_t type){
 
 
 void memory_init(){
+	gc_init();
 	allocator_nil_atom = atom_alloc(T_NIL);
 	allocator_true_atom = atom_alloc(T_TRUE);
 	allocator_false_atom = atom_alloc(T_FALSE);
