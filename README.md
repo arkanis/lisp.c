@@ -26,7 +26,7 @@ The [Boehm-Demers-Weiser conservative garbage collector][1] is used right now. U
 
 # Requirements
 
-- `gcc` compiler
+- `gcc` compiler, v4.6
 - `make`
 - libgc: `libgc1c2` shared library package and `libgc-dev` header package
 
