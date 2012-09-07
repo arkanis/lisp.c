@@ -41,27 +41,27 @@ atom_t *test_sample(char *body, instruction_t *expected_bytecode){
 
 void test_self_evaling_atoms(){
 	test_sample("(lambda () nil)", (instruction_t[]){
-		(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_LOAD_NIL},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	test_sample("(lambda () true)", (instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_LOAD_TRUE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	test_sample("(lambda () false)", (instruction_t[]){
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	test_sample("(lambda () 42)", (instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 42},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	atom_t *atom = test_sample("(lambda () \"foo\")", (instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .index = 0},
+		(instruction_t){BC_LOAD_LITERAL, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -72,7 +72,7 @@ void test_nums_in_literal_tables(){
 	// 65546 = 2^16 + 10, just a number over the 16 bit limit. Therefore it does not fit into an instruction
 	// and has to be stored in the literal table.
 	atom_t *atom = test_sample("(lambda () 65546)", (instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .index = 0},
+		(instruction_t){BC_LOAD_LITERAL, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -82,11 +82,11 @@ void test_nums_in_literal_tables(){
 
 void test_begin(){
 	test_sample("(lambda () nil true false)", (instruction_t[]){
-		(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_LOAD_NIL},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_LOAD_TRUE},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -94,12 +94,12 @@ void test_begin(){
 
 void test_args_in_own_frame(){
 	test_sample("(lambda (a) a)", (instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	test_sample("(lambda (a b c) c)", (instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 2},
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 2},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -107,11 +107,11 @@ void test_args_in_own_frame(){
 
 void test_locals_in_own_frame(){
 	atom_t *rl = test_sample("(lambda () (define foo 42) (define bar nil))", (instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 42},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // leaves current atom on stack (as return value)
+		(instruction_t){BC_LOAD_NUM, .num = 42},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},  // leaves current atom on stack (as return value)
 		(instruction_t){BC_DROP},  // from begin
-		(instruction_t){BC_PUSH_NIL},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_LOAD_NIL},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -134,11 +134,11 @@ void test_nested_compilation(){
 		)) \
 	)";
 	atom_t *rl = test_sample(code, (instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 42},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 0},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -154,16 +154,16 @@ void test_nested_compilation(){
 	test( child_cl != NULL, "no child lambda was compiled!");
 	test( child_cl->type == T_COMPILED_LAMBDA, "expected compiled lambda (type %d) got type %d", T_COMPILED_LAMBDA, child_cl->type);
 	test_instructions(&child_cl->bytecode, (instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 17},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 17},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_ARG, .offset = 1, .index = 1},
+		(instruction_t){BC_LOAD_ARG, .offset = 1, .index = 1},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 0},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 2},
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 2},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, "nested body");
@@ -177,27 +177,27 @@ void test_nested_compilation(){
 
 void test_env_lookup_on_unknown_vars(){
 	atom_t *rl = test_sample("(lambda () foo)", (instruction_t[]){
-		(instruction_t){BC_PUSH_FROM_ENV, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_ENV, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
 	test_atom(rl->cl->literal_table.atoms[0], (atom_t){T_SYM, .str = "foo"}, 0, "(lambda () foo)");
 	
 	rl = test_sample("(lambda (n) (if (= n 1) 1 (* n (fac (- n 1))) ))", (instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 1},
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_EQ},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
 			// true case
-			(instruction_t){BC_PUSH_NUM, .num = 1},
+			(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_JUMP, .jump_offset = 7},
 			// false case
 			// args for *
-				(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-				(instruction_t){BC_PUSH_FROM_ENV, .offset = 0, .index = 0},  // look up the fac lambda itself
+				(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+				(instruction_t){BC_LOAD_ENV, .offset = 0, .index = 0},  // look up the fac lambda itself
 				// args for fac
-					(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-					(instruction_t){BC_PUSH_NUM, .num = 1},
+					(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+					(instruction_t){BC_LOAD_NUM, .num = 1},
 				(instruction_t){BC_SUB},
 				(instruction_t){BC_CALL, .num = 1},
 			(instruction_t){BC_MUL},
@@ -220,11 +220,11 @@ void test_self_recursion(){
 		(fac 7) \
 	)";
 	atom_t *rl = test_sample(code, (instruction_t[]){
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 0},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_DROP}, // from implicit begin
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 7},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 7},
 		(instruction_t){BC_CALL, .num = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -237,20 +237,20 @@ void test_self_recursion(){
 	test( child_cl != NULL, "no child lambda was compiled!");
 	test( child_cl->type == T_COMPILED_LAMBDA, "expected compiled lambda (type %d) got type %d", T_COMPILED_LAMBDA, child_cl->type);
 	test_instructions(&child_cl->bytecode, (instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 1},
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_EQ},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
 			// true case
-			(instruction_t){BC_PUSH_NUM, .num = 1},
+			(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_JUMP, .jump_offset = 7},
 			// false case
 			// args for *
-				(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-				(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},  // look up the fac runtime lambda itself
+				(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+				(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 0},  // look up the fac runtime lambda itself
 				// args for fac
-					(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-					(instruction_t){BC_PUSH_NUM, .num = 1},
+					(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+					(instruction_t){BC_LOAD_NUM, .num = 1},
 				(instruction_t){BC_SUB},
 				(instruction_t){BC_CALL, .num = 1},
 			(instruction_t){BC_MUL},
@@ -263,7 +263,7 @@ void test_self_recursion(){
 
 void test_quote(){
 	test_sample("(lambda () (quote c))", (instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_LITERAL, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});
@@ -271,11 +271,11 @@ void test_quote(){
 
 void test_if(){
 	test_sample("(lambda () (if true 42 17))", (instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_LOAD_TRUE},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
-		(instruction_t){BC_PUSH_NUM, .num = 42},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
 		(instruction_t){BC_JUMP, .jump_offset = 1},
-		(instruction_t){BC_PUSH_NUM, .num = 17},
+		(instruction_t){BC_LOAD_NUM, .num = 17},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	});

@@ -51,32 +51,32 @@ static void test_sample(instruction_t *bytecode, atom_t **literal_table, atom_t 
 
 void test_simple_instructions(){
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_LOAD_NIL},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, nil_atom());
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_LOAD_TRUE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, true_atom());
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, false_atom());
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 17},
+		(instruction_t){BC_LOAD_NUM, .num = 17},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(17));
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_TRUE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_DROP},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -87,7 +87,7 @@ void test_push_literal(){
 	atom_t *atom = num_atom_alloc(29);
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .index = 0},
+		(instruction_t){BC_LOAD_LITERAL, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, (atom_t*[]){
@@ -96,7 +96,7 @@ void test_push_literal(){
 	}, nil_atom(), 0, atom);
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .index = 2},
+		(instruction_t){BC_LOAD_LITERAL, .index = 2},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, (atom_t*[]){
@@ -112,7 +112,7 @@ void test_push_arg(){
 	atom_t *atom = num_atom_alloc(29);
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .index = 0, .offset = 0},
+		(instruction_t){BC_LOAD_ARG, .index = 0, .offset = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL,
@@ -120,7 +120,7 @@ void test_push_arg(){
 	atom);
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .index = 2, .offset = 0},
+		(instruction_t){BC_LOAD_ARG, .index = 2, .offset = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL,
@@ -131,22 +131,22 @@ void test_push_arg(){
 void test_branching(){
 	// bytecode for: if(true) 42 else 17
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
+		(instruction_t){BC_LOAD_TRUE},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
-		(instruction_t){BC_PUSH_NUM, .num = 42},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
 		(instruction_t){BC_JUMP, .jump_offset = 1},
-		(instruction_t){BC_PUSH_NUM, .num = 17},
+		(instruction_t){BC_LOAD_NUM, .num = 17},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(42));
 	
 	// bytecode for: if(false) 42 else 17
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
-		(instruction_t){BC_PUSH_NUM, .num = 42},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
 		(instruction_t){BC_JUMP, .jump_offset = 1},
-		(instruction_t){BC_PUSH_NUM, .num = 17},
+		(instruction_t){BC_LOAD_NUM, .num = 17},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(17));
@@ -154,32 +154,32 @@ void test_branching(){
 
 void test_math_instructions(){
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 4},
-		(instruction_t){BC_PUSH_NUM, .num = 8},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 8},
 		(instruction_t){BC_ADD},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(12));
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 4},
-		(instruction_t){BC_PUSH_NUM, .num = 8},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 8},
 		(instruction_t){BC_SUB},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(-4));
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 4},
-		(instruction_t){BC_PUSH_NUM, .num = 8},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 8},
 		(instruction_t){BC_MUL},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, num_atom_alloc(32));
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 8},
-		(instruction_t){BC_PUSH_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 8},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
 		(instruction_t){BC_DIV},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -188,16 +188,16 @@ void test_math_instructions(){
 
 void test_comparators(){
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 4},
-		(instruction_t){BC_PUSH_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
 		(instruction_t){BC_EQ},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, true_atom());
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 4},
-		(instruction_t){BC_PUSH_NUM, .num = 8},
+		(instruction_t){BC_LOAD_NUM, .num = 4},
+		(instruction_t){BC_LOAD_NUM, .num = 8},
 		(instruction_t){BC_EQ},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -206,14 +206,14 @@ void test_comparators(){
 
 void test_function_calls(){
 	atom_t *ret_first_arg = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .index = 0, .offset = 0},
+		(instruction_t){BC_LOAD_ARG, .index = 0, .offset = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, 1, 0);
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_LAMBDA, .index = 0, .offset = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 42},
+		(instruction_t){BC_LOAD_LAMBDA, .index = 0, .offset = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 42},
 		(instruction_t){BC_CALL, .num = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -231,18 +231,18 @@ void test_function_calls(){
 				fac(n - 1) * n
 	*/
 	atom_t *fac = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .index = 0, .offset = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 1},
+		(instruction_t){BC_LOAD_ARG, .index = 0, .offset = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_EQ},  // n == 1
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
-			(instruction_t){BC_PUSH_NUM, .num = 1},
+			(instruction_t){BC_LOAD_NUM, .num = 1},
 		(instruction_t){BC_JUMP, .jump_offset = 7},
-			(instruction_t){BC_LAMBDA, .index = 0},  // fak
-				(instruction_t){BC_PUSH_ARG, .index = 0, .offset = 0}, // n
-				(instruction_t){BC_PUSH_NUM, .num = 1},
+			(instruction_t){BC_LOAD_LAMBDA, .index = 0},  // fak
+				(instruction_t){BC_LOAD_ARG, .index = 0, .offset = 0}, // n
+				(instruction_t){BC_LOAD_NUM, .num = 1},
 				(instruction_t){BC_SUB},  // n - 1
 			(instruction_t){BC_CALL, .num = 1},
-			(instruction_t){BC_PUSH_ARG, .index = 0, .offset = 0}, // n for mul
+			(instruction_t){BC_LOAD_ARG, .index = 0, .offset = 0}, // n for mul
 			(instruction_t){BC_MUL},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -268,10 +268,10 @@ void test_env_instructions(){
 	
 	atom_t *atom = num_atom_alloc(42);
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .index = 0},
-		(instruction_t){BC_SAVE_ENV, .index = 1},
+		(instruction_t){BC_LOAD_LITERAL, .index = 0},
+		(instruction_t){BC_STORE_ENV, .index = 1},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_FROM_ENV, .index = 1},
+		(instruction_t){BC_LOAD_ENV, .index = 1},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, (atom_t*[]){
@@ -285,10 +285,10 @@ void test_env_instructions(){
 
 void test_var_instructions(){
 	atom_t *cl = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 43},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 43},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, 0, 1);
@@ -301,17 +301,17 @@ void test_arg_and_local_offset(){
 	
 	// Function that just returns the first local of the outer scope
 	atom_t *ret_first_outer_local = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, 0, 0);
 	
 	// Saves first literal in the first local, then calls ret_first_outer_local()
 	atom_t *cl = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_LITERAL, .offset = 0, .index = 0},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_LITERAL, .offset = 0, .index = 0},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 1},
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 1},
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -340,32 +340,32 @@ void test_lexical_scoping(){
 	*/
 	
 	atom_t *ret_first_outer_local = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, 0, 0);
 	
 	atom_t *stack_polluter = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 17},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define wrong 17)
+		(instruction_t){BC_LOAD_NUM, .num = 17},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},  // (define wrong 17)
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 1},  // load ret_first_outer_local
+		(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 1},  // load ret_first_outer_local
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, 0, 1);
 	
 	atom_t *test = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_NUM, .num = 45},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define right 45)
+		(instruction_t){BC_LOAD_NUM, .num = 45},
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},  // (define right 45)
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  //  create ret_first_outer_local lambda from literal table
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define ret_first_outer_local ...)
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 0},  //  create ret_first_outer_local lambda from literal table
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 1},  // (define ret_first_outer_local ...)
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 1},  // create stack_polluter lambda from literal table
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define stack_polluter ...)
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 1},  // create stack_polluter lambda from literal table
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 2},  // (define stack_polluter ...)
 		(instruction_t){BC_DROP},
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 2},
 		(instruction_t){BC_CALL, .num = 0},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -380,16 +380,16 @@ void test_lexical_scoping(){
 
 void test_pair_instructions(){
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
-		(instruction_t){BC_PUSH_NIL},
+		(instruction_t){BC_LOAD_TRUE},
+		(instruction_t){BC_LOAD_NIL},
 		(instruction_t){BC_CONS},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
 	}, NULL, nil_atom(), 0, pair_atom_alloc(true_atom(), nil_atom()));
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_TRUE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_CONS},
 		(instruction_t){BC_FIRST},
 		(instruction_t){BC_RETURN},
@@ -397,8 +397,8 @@ void test_pair_instructions(){
 	}, NULL, nil_atom(), 0, true_atom());
 	
 	test_sample((instruction_t[]){
-		(instruction_t){BC_PUSH_TRUE},
-		(instruction_t){BC_PUSH_FALSE},
+		(instruction_t){BC_LOAD_TRUE},
+		(instruction_t){BC_LOAD_FALSE},
 		(instruction_t){BC_CONS},
 		(instruction_t){BC_REST},
 		(instruction_t){BC_RETURN},
@@ -433,8 +433,8 @@ void test_capturing(){
 	*/
 	
 	atom_t *adder = compiled((instruction_t[]){
-		(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},  // x
-		(instruction_t){BC_PUSH_ARG, .offset = 1, .index = 0},  // n, needs to be captured
+		(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},  // x
+		(instruction_t){BC_LOAD_ARG, .offset = 1, .index = 0},  // n, needs to be captured
 		(instruction_t){BC_ADD},
 		(instruction_t){BC_RETURN},
 		(instruction_t){BC_NULL}
@@ -442,23 +442,23 @@ void test_capturing(){
 	
 	atom_t *generate_adders = compiled((instruction_t[]){
 		// (eq n 0)
-			(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},  // n
-			(instruction_t){BC_PUSH_NUM, .num = 0},  // 0
+			(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},  // n
+			(instruction_t){BC_LOAD_NUM, .num = 0},  // 0
 		(instruction_t){BC_EQ},
 		(instruction_t){BC_JUMP_IF_FALSE, .jump_offset = 2},
 			// true case
-			(instruction_t){BC_PUSH_NIL},
+			(instruction_t){BC_LOAD_NIL},
 		(instruction_t){BC_JUMP, .jump_offset = 7},
 			// false case
 			// cons first: (lambda (x) (plus x n))
-				(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},
+				(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 0},
 			// cons rest
 				// load generate_adders
-				(instruction_t){BC_PUSH_VAR, .offset = 1, .index = 0},
+				(instruction_t){BC_LOAD_LOCAL, .offset = 1, .index = 0},
 				// args for generate_adders
 					// (minus n 1)
-					(instruction_t){BC_PUSH_ARG, .offset = 0, .index = 0},
-					(instruction_t){BC_PUSH_NUM, .num = 1},
+					(instruction_t){BC_LOAD_ARG, .offset = 0, .index = 0},
+					(instruction_t){BC_LOAD_NUM, .num = 1},
 					(instruction_t){BC_SUB},
 				(instruction_t){BC_CALL, .num = 1},
 			(instruction_t){BC_CONS},
@@ -470,30 +470,30 @@ void test_capturing(){
 	}, 1, 0);
 	
 	atom_t *test = compiled((instruction_t[]){
-		(instruction_t){BC_LAMBDA, .offset = 0, .index = 0},  // create generate_adders lambda
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 0},  // (define generate_adders ...)
+		(instruction_t){BC_LOAD_LAMBDA, .offset = 0, .index = 0},  // create generate_adders lambda
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 0},  // (define generate_adders ...)
 		(instruction_t){BC_DROP},
 		
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 0},
-		(instruction_t){BC_PUSH_NUM, .num = 3},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 0},
+		(instruction_t){BC_LOAD_NUM, .num = 3},
 		(instruction_t){BC_CALL, .num = 1},  // (generate_adders 3)
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 1},  // (define adders ...)
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 1},  // (define adders ...)
 		(instruction_t){BC_DROP},
 		
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 1},
 		(instruction_t){BC_FIRST},  // (frist adders)
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 2},  // (define add3 ...)
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 2},  // (define add3 ...)
 		(instruction_t){BC_DROP},
 		
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 1},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 1},
 		(instruction_t){BC_REST},
 		(instruction_t){BC_FIRST},
-		(instruction_t){BC_SAVE_VAR, .offset = 0, .index = 3},  // (define add2 (first (rest adders)))
+		(instruction_t){BC_STORE_LOCAL, .offset = 0, .index = 3},  // (define add2 (first (rest adders)))
 		(instruction_t){BC_DROP},
 		
-		(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 3},  // load add2
-			(instruction_t){BC_PUSH_VAR, .offset = 0, .index = 2},  // load add3
-			(instruction_t){BC_PUSH_NUM, .num = 7},
+		(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 3},  // load add2
+			(instruction_t){BC_LOAD_LOCAL, .offset = 0, .index = 2},  // load add3
+			(instruction_t){BC_LOAD_NUM, .num = 7},
 			(instruction_t){BC_CALL, .num = 1},  // (add3 7)
 		(instruction_t){BC_CALL, .num = 1},  // (add2 ...)
 		

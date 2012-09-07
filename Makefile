@@ -62,6 +62,6 @@ dependencies:
 	sudo apt-get install gcc make libgc-dev libgc1c2
 
 clean:
-	rm -f *.o *.so repl core
+	rm -f *.o *.so lisp core
 	cd experiments; make clean
 	cd tests; make clean

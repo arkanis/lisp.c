@@ -44,25 +44,25 @@ atom_t* bcc_compile_to_lambda(atom_t *arg_names, atom_t *body, env_t *env, atom_
 void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 	switch (expr->type) {
 		case T_NIL:
-			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_NIL);
+			bcg_gen_op(&cl_atom->bytecode, BC_LOAD_NIL);
 			break;
 		case T_TRUE:
-			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_TRUE);
+			bcg_gen_op(&cl_atom->bytecode, BC_LOAD_TRUE);
 			break;
 		case T_FALSE:
-			bcg_gen_op(&cl_atom->bytecode, BC_PUSH_FALSE);
+			bcg_gen_op(&cl_atom->bytecode, BC_LOAD_FALSE);
 			break;
 		case T_NUM:
 			if (expr->num > INT16_MAX || expr->num < INT16_MIN) {
 				size_t idx = bcc_add_atom_to_literal_table(cl_atom, expr);
-				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx, .offset = 0});
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_LITERAL, .index = idx, .offset = 0});
 			} else {
-				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_NUM, .num = expr->num});
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_NUM, .num = expr->num});
 			}
 			break;
 		case T_STR: {
 			size_t idx = bcc_add_atom_to_literal_table(cl_atom, expr);
-			bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx});
+			bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_LITERAL, .index = idx});
 			} break;
 		case T_SYM: {
 			ssize_t idx;
@@ -73,11 +73,11 @@ void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 					// symbol is known in current scope (lambda)
 					if (idx < current_cl->comp_data->arg_count) {
 						// symbol identifies an argument, generate a push-arg instruction
-						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_ARG, .index = idx, .offset = scope_offset});
+						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_ARG, .index = idx, .offset = scope_offset});
 					} else {
 						// symbol identifies a local variable, generate a push-var instruction
 						idx = idx - current_cl->comp_data->arg_count;
-						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_VAR, .index = idx, .offset = scope_offset});
+						bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_LOCAL, .index = idx, .offset = scope_offset});
 					}
 					break;
 				}
@@ -88,7 +88,7 @@ void bcc_compile_expr(atom_t *cl_atom, atom_t *expr, env_t *env){
 			if (current_cl == NULL){
 				// Symbol not found in any argument or variable lists of all parents, do an env lookup
 				size_t literal_idx = bcc_add_atom_to_literal_table(cl_atom, expr);
-				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_PUSH_FROM_ENV, .index = literal_idx, .offset = 0});
+				bcg_gen(&cl_atom->bytecode, (instruction_t){BC_LOAD_ENV, .index = literal_idx, .offset = 0});
 			}
 			
 			} break;

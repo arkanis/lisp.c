@@ -41,16 +41,16 @@ typedef struct {
  * These instructions push the corresponding singleton atom on the stack.
  * Instruction properties used: none
  */
-#define BC_PUSH_NIL		1
-#define BC_PUSH_TRUE		2
-#define BC_PUSH_FALSE		3
+#define BC_LOAD_NIL		1
+#define BC_LOAD_TRUE		2
+#define BC_LOAD_FALSE		3
 
 /**
  * Pushes a numer on top of the stack. The value is stored as part of the instruction.
  * Instruction properties used:
  * 	num
  */
-#define BC_PUSH_NUM		4
+#define BC_LOAD_NUM		4
 
 /**
  * Pushes an atom from the literal table on top of the stack. Used for all kinds of atoms
@@ -59,7 +59,7 @@ typedef struct {
  * 	frame_offset (number of parents to got up for the literal table)
  * 	index (entry of the literal table to push on the stack)
  */
-#define BC_PUSH_LITERAL	5
+#define BC_LOAD_LITERAL	5
 
 /**
  * Pushes an argument of a compiled lambda on top of the stack.
@@ -67,7 +67,7 @@ typedef struct {
  * 	frame_offset (number of frames to got up)
  * 	index (index of the argument)
  */
-#define BC_PUSH_ARG		6
+#define BC_LOAD_ARG		6
 
 /**
  * Pushes the value of a local variable on top of the stack.
@@ -75,7 +75,7 @@ typedef struct {
  * 	frame_offset (number of frames to got up)
  * 	index (index of the local variable)
  */
-#define BC_PUSH_VAR		7
+#define BC_LOAD_LOCAL		7
 
 /**
  * Stores the top of the stack in a local variable. The atom is NOT popped! It's left on the
@@ -84,7 +84,7 @@ typedef struct {
  * 	frame_offset (number of frames to got up)
  * 	index (index of the local variable)
  */
-#define BC_SAVE_VAR		9
+#define BC_STORE_LOCAL	9
 
 /**
  * Takes a symbol out of the literal table and searches for a matching entry in the
@@ -95,13 +95,13 @@ typedef struct {
  * frame_offset is not used right now. Don't see a usecase were we access the literal
  * table of a parent lambda.
  */
-#define BC_PUSH_FROM_ENV	8
+#define BC_LOAD_ENV		8
 
 /**
  * Stores the top of the stack in the environment of the outermost compiled lambda. The
  * atom is NOT popped! It's left on the stack as the return value of `define()`.
  */
-#define BC_SAVE_ENV		10
+#define BC_STORE_ENV		10
 
 #define BC_DROP			11
 
@@ -115,7 +115,7 @@ typedef struct {
  * 	frame_offset (number of parents to got up for the literal table)
  * 	index (entry of the literal table to push on the stack)
  */
-#define BC_LAMBDA			30
+#define BC_LOAD_LAMBDA	30
 
 /**
  * Uses the num property as the number of arguments that are pushed on the stack.
@@ -138,10 +138,10 @@ typedef struct {
 #define BC_LT				21
 #define BC_GT				22
 
-#define BC_AND			23
+#define BC_AND				23
 #define BC_OR				24
-#define BC_NOT			25
-#define BC_XOR			26
+#define BC_NOT				25
+#define BC_XOR				26
 */
 
 #define BC_CONS			27

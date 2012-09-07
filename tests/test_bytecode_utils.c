@@ -12,13 +12,13 @@ bool test_instruction(instruction_t subject, instruction_t expected, size_t idx,
 	if (!success)
 		return false;
 	
-	if (subject.op == BC_PUSH_NUM)
+	if (subject.op == BC_LOAD_NUM)
 		return test(subject.num == expected.num, "%s %zu got wrong num, expected %d, got %d",
 			msg, idx, expected.num, subject.num);
 	else if (subject.op == BC_JUMP || subject.op == BC_JUMP_IF_FALSE)
 		return test(subject.jump_offset == expected.jump_offset, "%s %zu got wrong offset, expected %d, got %d",
 			msg, idx, expected.jump_offset, subject.jump_offset);
-	else if (subject.op == BC_PUSH_LITERAL || subject.op == BC_PUSH_ARG)
+	else if (subject.op == BC_LOAD_LITERAL || subject.op == BC_LOAD_ARG)
 		return test(subject.offset == expected.offset && subject.index == expected.index,
 			"%s %zu got wrong offset, expected %d, got %d", msg, idx, expected.jump_offset, subject.jump_offset);
 	else if (subject.op == BC_CALL)

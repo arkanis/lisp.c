@@ -155,19 +155,19 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 	
 	while(true){
 		switch(ip->op){
-			case BC_PUSH_NIL:
+			case BC_LOAD_NIL:
 				stack_push(&interp->stack, nil_atom());
 				break;
-			case BC_PUSH_TRUE:
+			case BC_LOAD_TRUE:
 				stack_push(&interp->stack, true_atom());
 				break;
-			case BC_PUSH_FALSE:
+			case BC_LOAD_FALSE:
 				stack_push(&interp->stack, false_atom());
 				break;
-			case BC_PUSH_NUM:
+			case BC_LOAD_NUM:
 				stack_push(&interp->stack, num_atom_alloc(ip->num));
 				break;
-			case BC_PUSH_LITERAL: case BC_LAMBDA: {
+			case BC_LOAD_LITERAL: case BC_LOAD_LAMBDA: {
 				scope_t this_scope = (scope_t){ .next = rl->scopes, .type = SCOPE_STACK, .arg_count = arg_count, .frame_index = frame_index};
 				scope_p target_scope = &this_scope;
 				for(uint16_t scope_offset = ip->offset; scope_offset > 0; scope_offset--)
@@ -183,7 +183,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA);
 				atom_t *target_cl = frame_pointer[0]->cl;
 				assert(ip->index < target_cl->literal_table.length);
-				if (ip->op == BC_PUSH_LITERAL) {
+				if (ip->op == BC_LOAD_LITERAL) {
 					assert(target_cl->literal_table.atoms[ip->index]->type != T_COMPILED_LAMBDA);
 					stack_push(&interp->stack, target_cl->literal_table.atoms[ip->index]);
 				} else {
@@ -196,7 +196,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				}
 				} break;
 				
-			case BC_PUSH_ARG: case BC_PUSH_VAR: case BC_SAVE_VAR: {
+			case BC_LOAD_ARG: case BC_LOAD_LOCAL: case BC_STORE_LOCAL: {
 				scope_t this_scope = (scope_t){ .next = rl->scopes, .type = SCOPE_STACK, .arg_count = arg_count, .frame_index = frame_index};
 				scope_p target_scope = &this_scope;
 				for(uint16_t scope_offset = ip->offset; scope_offset > 0; scope_offset--)
@@ -210,15 +210,15 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					frame_pointer = target_scope->atoms;
 				
 				switch(ip->op){
-				case BC_PUSH_ARG:
+				case BC_LOAD_ARG:
 					assert(ip->index < target_scope->arg_count);
 					stack_push(&interp->stack, frame_pointer[ip->index+1]);
 					break;
-				case BC_PUSH_VAR:
+				case BC_LOAD_LOCAL:
 					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
 					stack_push(&interp->stack, frame_pointer[target_scope->arg_count + ip->index+1]);
 					break;
-				case BC_SAVE_VAR: {
+				case BC_STORE_LOCAL: {
 					assert(frame_pointer[0]->type == T_RUNTIME_LAMBDA && ip->index < frame_pointer[0]->cl->comp_data->var_count);
 					atom_t *value = stack_peek(&interp->stack);
 					if (ip->offset > 0)  // no need to check if we store the atom in our own stack frame
@@ -229,7 +229,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				
 				} break;
 				
-			case BC_PUSH_FROM_ENV: case BC_SAVE_ENV: {
+			case BC_LOAD_ENV: case BC_STORE_ENV: {
 				// First loop though the scope chain to get the definition env
 				scope_p target_scope = rl->scopes;
 				while(target_scope->next != NULL)
@@ -242,12 +242,12 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				atom_t *key = rl->cl->literal_table.atoms[ip->index];
 				assert(key->type == T_SYM);
 				
-				if (ip->op == BC_PUSH_FROM_ENV) {
+				if (ip->op == BC_LOAD_ENV) {
 					atom_t *value = env_get(target_env, key->sym);
 					if (value != NULL) {
 						stack_push(&interp->stack, value);
 					} else {
-						warn("BC_PUSH_FROM_ENV: no binding for %s in env %p", key->sym, target_env);
+						warn("BC_LOAD_ENV: no binding for %s in env %p", key->sym, target_env);
 						stack_push(&interp->stack, nil_atom());
 					}
 				} else {
@@ -451,7 +451,7 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 
 /*
 
-			case BC_PUSH_ARG: case BC_PUSH_VAR: case BC_SAVE_VAR: {
+			case BC_LOAD_ARG: case BC_LOAD_LOCAL: case BC_STORE_LOCAL: {
 				// remember, what is called fp up above is actually the frame index (fi)
 				// Start with the frame pointer on the first arg of the current context
 				size_t frame_index = fp;  // stack index of the stack frame we are currently in
@@ -498,15 +498,15 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				}
 				
 				switch(ip->op){
-				case BC_PUSH_ARG:
+				case BC_LOAD_ARG:
 					assert(ip->index < frame_arg_count);
 					stack_push(&interp->stack, frame_ptr[ip->index]);
 					break;
-				case BC_PUSH_VAR:
+				case BC_LOAD_LOCAL:
 					assert(ip->index < lambda->comp_data->var_count);
 					stack_push(&interp->stack, frame_ptr[frame_arg_count + ip->index]);
 					break;
-				case BC_SAVE_VAR: {
+				case BC_STORE_LOCAL: {
 					assert(ip->index < lambda->comp_data->var_count);
 					atom_t *value = stack_pop(&interp->stack);
 					frame_ptr[frame_arg_count + ip->index] = value;

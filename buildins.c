@@ -27,7 +27,7 @@ atom_t* buildin_define(atom_t *args, env_t *env){
 void compile_define(atom_t *cl, atom_t *args, env_t *env){
 	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("define requires two arguments and the first one has to be a symbol");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -40,7 +40,7 @@ void compile_define(atom_t *cl, atom_t *args, env_t *env){
 	
 	// Compile value expr and store the initial value afterwards
 	bcc_compile_expr(cl, args->rest->first, env);
-	bcg_gen(&cl->bytecode, (instruction_t){BC_SAVE_VAR, .index = cl->comp_data->var_count - 1, .offset = 0});
+	bcg_gen(&cl->bytecode, (instruction_t){BC_STORE_LOCAL, .index = cl->comp_data->var_count - 1, .offset = 0});
 }
 
 
@@ -57,7 +57,7 @@ atom_t* set_eval(atom_t *args, env_t *env){
 void set_compile(atom_t *cl, atom_t *args, env_t *env){
 	if (args->first->type != T_SYM || args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("set requires two arguments and the first one has to be a symbol");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -80,7 +80,7 @@ void set_compile(atom_t *cl, atom_t *args, env_t *env){
 			} else {
 				// symbol identifies a local variable, generate a save-var instruction
 				idx = idx - current_cl->comp_data->arg_count;
-				bcg_gen(&cl->bytecode, (instruction_t){BC_SAVE_VAR, .index = idx, .offset = scope_offset});
+				bcg_gen(&cl->bytecode, (instruction_t){BC_STORE_LOCAL, .index = idx, .offset = scope_offset});
 			}
 			break;
 		}
@@ -91,7 +91,7 @@ void set_compile(atom_t *cl, atom_t *args, env_t *env){
 	if (current_cl == NULL){
 		// Symbol not found in any argument or variable lists of all parents
 		warn("set: can't find variable %s!", name_atom->sym);
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 	}
 }
 
@@ -110,7 +110,7 @@ atom_t* buildin_if(atom_t *args, env_t *env){
 void compile_if(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_PAIR || args->rest->rest->rest->type != T_NIL){
 		warn("if requires exactly three arguments");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -138,12 +138,12 @@ atom_t* buildin_quote(atom_t *args, env_t *env){
 void compile_quote(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL){
 		warn("quote takes exactly one argument");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
 	size_t idx = bcc_add_atom_to_literal_table(cl, args->first);
-	bcg_gen(&cl->bytecode, (instruction_t){BC_PUSH_LITERAL, .index = idx, .offset = 0});
+	bcg_gen(&cl->bytecode, (instruction_t){BC_LOAD_LITERAL, .index = idx, .offset = 0});
 }
 
 
@@ -157,7 +157,7 @@ atom_t* buildin_begin(atom_t *args, env_t *env){
 void compile_begin(atom_t *cl, atom_t *args, env_t *env){
 	if (args->type != T_PAIR){
 		warn("begin needs at least one expr to compile");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -205,7 +205,7 @@ atom_t* buildin_lambda(atom_t *args, env_t *env){
 void compile_lambda(atom_t *cl, atom_t *args, env_t *env){
 	if (args->type != T_PAIR){
 		warn("lambda needs at least two arguments (arg list and body)");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -224,7 +224,7 @@ void compile_lambda(atom_t *cl, atom_t *args, env_t *env){
 	
 	atom_t *child_cl = bcc_compile_to_lambda(arg_names, body, env, cl);
 	size_t literal_idx = bcc_add_atom_to_literal_table(cl, child_cl);
-	bcg_gen(&cl->bytecode, (instruction_t){BC_LAMBDA, .index = literal_idx, .offset = 0});
+	bcg_gen(&cl->bytecode, (instruction_t){BC_LOAD_LAMBDA, .index = literal_idx, .offset = 0});
 }
 
 
@@ -241,7 +241,7 @@ atom_t* buildin_cons(atom_t *args, env_t *env){
 void compile_cons(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("cons needs exactly two arguments to build a pair");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -265,7 +265,7 @@ atom_t* buildin_first(atom_t *args, env_t *env){
 void compile_first(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL){
 		warn("first requires exactly one argument");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -288,7 +288,7 @@ atom_t* buildin_rest(atom_t *args, env_t *env){
 void compile_rest(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_NIL){
 		warn("rest requires exactly one argument");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -317,7 +317,7 @@ atom_t* buildin_plus(atom_t *args, env_t *env){
 void compile_plus(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("plus requires two arguments");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -341,7 +341,7 @@ atom_t* buildin_minus(atom_t *args, env_t *env){
 void compile_minus(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("minus requires two arguments");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -365,7 +365,7 @@ atom_t* buildin_multiply(atom_t *args, env_t *env){
 void compile_multiply(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("multiply requires two arguments");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
@@ -389,7 +389,7 @@ atom_t* buildin_divide(atom_t *args, env_t *env){
 void compile_divide(atom_t *cl, atom_t *args, env_t *env){
 	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
 		warn("divide requires two arguments");
-		bcg_gen_op(&cl->bytecode, BC_PUSH_NIL);
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
 		return;
 	}
 	
