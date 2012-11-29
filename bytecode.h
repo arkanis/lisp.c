@@ -131,13 +131,13 @@ typedef struct {
 #define BC_SUB			17
 #define BC_MUL			18
 #define BC_DIV			19
+#define BC_MOD			20
 
-#define BC_EQ				20
+#define BC_EQ				21
+#define BC_LT				22
+#define BC_GT				23
 
 /* TODO
-#define BC_LT				21
-#define BC_GT				22
-
 #define BC_AND				23
 #define BC_OR				24
 #define BC_NOT				25

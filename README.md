@@ -238,8 +238,8 @@ Branching instructions:
 
 Arithmetic and comparison instructions:
 
-- `BC_ADD`, `BC_SUB`, `BC_MUL`, `BC_DIV`: Pops two values from the stack and performs the matching arithmetic on them (+, -, *, /). The result is pushed on the stack. Instruction properties used: none.
-- `BC_EQ`: Pops two values from the stack. If these values are equal the true atom is pushed on the stack, otherwise the false atom is pushed on the stack. Only works with numbers right now. Instruction properties used: none.
+- `BC_ADD`, `BC_SUB`, `BC_MUL`, `BC_DIV`, `BC_MOD`: Pops two values from the stack and performs the matching arithmetic on them (+, -, *, /, %). The result is pushed on the stack. Instruction properties used: none.
+- `BC_EQ`, `BC_GT`, `BC_LT`: Pops two values (a and b) from the stack and compares them. If the comparison holds (a == b, a > b, a < b) the the true atom is pushed on the stack, otherwise the false atom is pushed on the stack. Only works with numbers right now. Instruction properties used: none.
 
 Pair handling instructions:
 

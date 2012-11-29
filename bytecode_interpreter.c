@@ -402,6 +402,13 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 				stack_push(&interp->stack, num_atom_alloc(a->num / b->num));
 			} break;
 			
+			case BC_MOD: {
+				atom_t *b = stack_pop(&interp->stack);
+				atom_t *a = stack_pop(&interp->stack);
+				assert(a->type == T_NUM && b->type == T_NUM);
+				stack_push(&interp->stack, num_atom_alloc(a->num % b->num));
+			} break;
+			
 			case BC_EQ: {
 				atom_t *b = stack_pop(&interp->stack);
 				atom_t *a = stack_pop(&interp->stack);
@@ -411,6 +418,44 @@ atom_t* bci_eval(bytecode_interpreter_t interp, atom_t* rl, atom_t *args, env_t 
 					switch(a->type){
 						case T_NUM:
 							if (a->num == b->num)
+								result = true_atom();
+							break;
+						default:
+							assert(0);
+							break;
+					}
+				}
+				
+				stack_push(&interp->stack, result);
+			} break;
+			case BC_LT: {
+				atom_t *b = stack_pop(&interp->stack);
+				atom_t *a = stack_pop(&interp->stack);
+				atom_t *result = false_atom();
+				
+				if (a->type == b->type) {
+					switch(a->type){
+						case T_NUM:
+							if (a->num < b->num)
+								result = true_atom();
+							break;
+						default:
+							assert(0);
+							break;
+					}
+				}
+				
+				stack_push(&interp->stack, result);
+			} break;
+			case BC_GT: {
+				atom_t *b = stack_pop(&interp->stack);
+				atom_t *a = stack_pop(&interp->stack);
+				atom_t *result = false_atom();
+				
+				if (a->type == b->type) {
+					switch(a->type){
+						case T_NUM:
+							if (a->num > b->num)
 								result = true_atom();
 							break;
 						default:

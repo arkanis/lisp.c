@@ -4,24 +4,6 @@
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>README</title>
-	<style>
-		html { margin: 0; padding: 0; }
-		body { margin: 1em 2em; padding: 0; font-size: medium; font-family: sans-serif; }
-		
-		table th { text-shadow: 0 1px 1px white; }
-		
-		table { margin: 1em; border-spacing: 0; }
-		table tr:nth-child(odd) { background: #eaeaea; } 
-		table th, table td { padding: 0.125em 0.5em; }
-		table th { font-size: 0.77em; }
-
-		table.numeric-data td { text-align: right; }
-		table tr.details { font-weight: bold; }
-
-		figure { display: table; margin: 1em auto; padding: 0; }
-		figure > figcaption { display: table-caption; font-size: 0.77em; margin: 0 0 0.5em 0; padding: 0; text-align: center; }
-		figure.inline { float: right; margin: 0 0 0.5em 0.5em; }
-	</style>
 </head>
 <body>
 
@@ -337,8 +319,8 @@ nil
 <p>Arithmetic and comparison instructions:</p>
 
 <ul>
-<li><code>BC_ADD</code>, <code>BC_SUB</code>, <code>BC_MUL</code>, <code>BC_DIV</code>: Pops two values from the stack and performs the matching arithmetic on them (+, -, *, /). The result is pushed on the stack. Instruction properties used: none.</li>
-<li><code>BC_EQ</code>: Pops two values from the stack. If these values are equal the true atom is pushed on the stack, otherwise the false atom is pushed on the stack. Only works with numbers right now. Instruction properties used: none.</li>
+<li><code>BC_ADD</code>, <code>BC_SUB</code>, <code>BC_MUL</code>, <code>BC_DIV</code>, <code>BC_MOD</code>: Pops two values from the stack and performs the matching arithmetic on them (+, -, *, /, %). The result is pushed on the stack. Instruction properties used: none.</li>
+<li><code>BC_EQ</code>, <code>BC_GT</code>, <code>BC_LT</code>: Pops two values (a and b) from the stack and compares them. If the comparison holds (a == b, a > b, a &lt; b) the the true atom is pushed on the stack, otherwise the false atom is pushed on the stack. Only works with numbers right now. Instruction properties used: none.</li>
 </ul>
 
 <p>Pair handling instructions:</p>

@@ -398,6 +398,30 @@ void compile_divide(atom_t *cl, atom_t *args, env_t *env){
 	bcg_gen_op(&cl->bytecode, BC_DIV);
 }
 
+atom_t* buildin_modulo(atom_t *args, env_t *env){
+	atom_t *first_arg = eval_atom(args->first, env);
+	atom_t *second_arg = eval_atom(args->rest->first, env);
+	
+	if (first_arg->type != T_NUM || second_arg->type != T_NUM){
+		warn("modulo only works on numbers");
+		return nil_atom();
+	}
+	
+	return num_atom_alloc(first_arg->num % second_arg->num);
+}
+
+void compile_modulo(atom_t *cl, atom_t *args, env_t *env){
+	if (args->rest->type != T_PAIR || args->rest->rest->type != T_NIL){
+		warn("modulo requires two arguments");
+		bcg_gen_op(&cl->bytecode, BC_LOAD_NIL);
+		return;
+	}
+	
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_MOD);
+}
+
 
 //
 // Comperators
@@ -422,6 +446,48 @@ void compile_equal(atom_t *cl, atom_t *args, env_t *env){
 	bcc_compile_expr(cl, args->first, env);
 	bcc_compile_expr(cl, args->rest->first, env);
 	bcg_gen_op(&cl->bytecode, BC_EQ);
+}
+
+atom_t* buildin_lt(atom_t *args, env_t *env){
+	atom_t *first_arg = eval_atom(args->first, env);
+	atom_t *second_arg = eval_atom(args->rest->first, env);
+	
+	if (first_arg->type != T_NUM || second_arg->type != T_NUM){
+		warn("lt only works on numbers");
+		return nil_atom();
+	}
+	
+	if (first_arg->num < second_arg->num)
+		return true_atom();
+	else
+		return false_atom();
+}
+
+void compile_lt(atom_t *cl, atom_t *args, env_t *env){
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_LT);
+}
+
+atom_t* buildin_gt(atom_t *args, env_t *env){
+	atom_t *first_arg = eval_atom(args->first, env);
+	atom_t *second_arg = eval_atom(args->rest->first, env);
+	
+	if (first_arg->type != T_NUM || second_arg->type != T_NUM){
+		warn("gt only works on numbers");
+		return nil_atom();
+	}
+	
+	if (first_arg->num > second_arg->num)
+		return true_atom();
+	else
+		return false_atom();
+}
+
+void compile_gt(atom_t *cl, atom_t *args, env_t *env){
+	bcc_compile_expr(cl, args->first, env);
+	bcc_compile_expr(cl, args->rest->first, env);
+	bcg_gen_op(&cl->bytecode, BC_GT);
 }
 
 
@@ -503,8 +569,11 @@ void register_buildins_in(env_t *env){
 	env_def(env, "-", buildin_atom_alloc(buildin_minus, compile_minus));
 	env_def(env, "*", buildin_atom_alloc(buildin_multiply, compile_multiply));
 	env_def(env, "/", buildin_atom_alloc(buildin_divide, compile_divide));
+	env_def(env, "%", buildin_atom_alloc(buildin_modulo, compile_modulo));
 	
 	env_def(env, "=", buildin_atom_alloc(buildin_equal, compile_equal));
+	env_def(env, "<", buildin_atom_alloc(buildin_lt, compile_lt));
+	env_def(env, ">", buildin_atom_alloc(buildin_gt, compile_gt));
 	
 	env_def(env, "mod_load", buildin_atom_alloc(buildin_mod_load, NULL));
 	
