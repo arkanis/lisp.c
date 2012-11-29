@@ -60,8 +60,14 @@ size_t bcg_gen(bytecode_t *bc, instruction_t instruction){
 		printf("bc %p: BC_MUL\n", bc);
 	else if (instruction.op == BC_DIV)
 		printf("bc %p: BC_DIV\n", bc);
+	else if (instruction.op == BC_MOD)
+		printf("bc %p: BC_MOD\n", bc);
 	else if (instruction.op == BC_EQ)
 		printf("bc %p: BC_EQ\n", bc);
+	else if (instruction.op == BC_LT)
+		printf("bc %p: BC_LT\n", bc);
+	else if (instruction.op == BC_GT)
+		printf("bc %p: BC_GT\n", bc);
 	else if (instruction.op == BC_CONS)
 		printf("bc %p: BC_CONS\n", bc);
 	else if (instruction.op == BC_FIRST)
